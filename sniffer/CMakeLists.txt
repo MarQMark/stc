@@ -23,12 +23,7 @@ if(NOT EXISTS "${PROJECT_SOURCE_DIR}/external/kikan/CMakeLists.txt")
     message(FATAL_ERROR "The Kikan submodules was not downloaded! GIT_SUBMODULE was turned off or failed. Please update submodules and try again.")
 endif()
 
-set(SOURCE_FILES
-        src/main.cpp
-)
+add_subdirectory("external/kikan")
 
-add_executable(sniffer ${SOURCE_FILES})
-
-target_include_directories(sniffer
-        PUBLIC include/
-)
+add_subdirectory("include")
+add_subdirectory("src")
