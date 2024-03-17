@@ -1,0 +1,3 @@
+[submodule "external/kikan"]
+	path = sniffer/external/kikan
+	url = https://github.com/MarQMark/Kikan.git
