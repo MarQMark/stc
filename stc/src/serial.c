@@ -14,6 +14,12 @@ int serial_init(Serial* serial){
 
     int flags = fcntl(serial->fd , F_GETFL, 0);
     fcntl(serial->fd , F_SETFL, flags | O_NONBLOCK);
+
+    struct timespec spec;
+    clock_gettime(CLOCK_REALTIME, &spec);
+    context.last_time = spec.tv_nsec;
+#elif _ARDUINO
+    context.last_time = millis();
 #endif
 
     return 0;
@@ -149,16 +155,33 @@ void serial_tx(Serial* serial) {
     }
 
     if(serial->resend_timeout <= 0){
-        Serial.write((uint8_t*)msg, 4 + sizeof(Header) + msg->hdr.len);
+#if _LINUX
+        write(serial->fd, (uint8_t*)&msg, 4 + sizeof(Header) + msg.hdr.len);
+#elif _ARDUINO
+        Serial.write((uint8_t*)&msg, 4 + sizeof(Header) + msg.hdr.len);
+#endif
         serial->resend_timeout = SER_RSD_TIMEOUT;
     }
     else{
-        serial->resend_timeout -= (int32_t)context->dt_millis;
+        serial->resend_timeout -= (int32_t)serial->dt_millis;
     }
 
 }
 
 void serial_update(Serial* serial){
+#if _LINUX
+    struct timespec spec;
+    clock_gettime(CLOCK_REALTIME, &spec);
+    if(spec.tv_nsec - context->last_time < 1000000)
+        context->dt_millis = 1;
+    else
+        context->dt_millis = (spec.tv_nsec - context->last_time) / 1000000;
+    context->last_time = spec.tv_nsec;
+#elif _ARDUINO
+    context.dt_millis = millis() - context.last_time;
+    context.last_time = millis();
+#endif
+
     serial_rx(serial);
     serial_tx(serial);
 }

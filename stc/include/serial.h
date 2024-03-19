@@ -14,6 +14,7 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <termios.h>
+#include <time.h>
 #elif _ARDUINO
 #include "Arduino.h"
 #endif
@@ -37,6 +38,9 @@ struct _Serial {
 
     MsgQueue tx_queue;
     int64_t resend_timeout;
+
+    int64_t last_time;
+    uint64_t dt_millis;
 
 #ifdef _LINUX
     int32_t fd;
