@@ -1,12 +1,10 @@
-#include "Kikan/Engine.h"
+#include "Sniffer.h"
 
 int main(){
+    Sniffer sniffer;
 
-    Kikan::Engine::init();
-    Kikan::Engine* engine = Kikan::Engine::Kikan();
-
-    while (engine->shouldRun()) {
-        engine->update();
+    while (sniffer.running) {
+        sniffer.update();
     }
 
     return 0;
