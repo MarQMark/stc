@@ -1,7 +1,7 @@
 #ifndef STC_MSG_QUEUE_H
 #define STC_MSG_QUEUE_H
 
-#include "message.h"
+#include "../../common/message.h"
 
 struct MsgQueuePart{
     struct MsgQueuePart* tail;

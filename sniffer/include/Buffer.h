@@ -3,7 +3,9 @@
 
 #include <vector>
 #include <cstdint>
+#include "message.h"
 
+#define BUFFER_SIZE 0x400
 
 class Buffer {
 public:
@@ -12,7 +14,7 @@ public:
 
     class MBuf{
     public:
-        MBuf(uint32_t size = 0x400) : size(size){
+        MBuf(uint32_t size = BUFFER_SIZE) : size(size){
             data = (uint8_t*)malloc(size);
             ptr = 0;
         };
@@ -26,9 +28,13 @@ public:
 
 
 private:
+    void parse_msg();
 
     std::vector<MBuf> _buffers;
-    std::vector<void*> _msgs;
+
+    std::vector<Message*> _msgs;
+    uint32_t _last_msg_buf = 0;
+    uint32_t _last_msg_ptr = 0;
 };
 
 
