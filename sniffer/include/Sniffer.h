@@ -3,6 +3,7 @@
 
 #include "Kikan/renderer/stdRenderer/StdRenderer.h"
 #include "Kikan/Engine.h"
+#include "Buffer.h"
 
 class Sniffer : Kikan::StdRenderer::Override{
 public:
@@ -16,7 +17,8 @@ private:
     void preRender(Kikan::StdRenderer* renderer, double dt) override;
     void postRender(Kikan::StdRenderer* renderer, double dt) override;
 
-    Kikan::Engine* engine;
+    Kikan::Engine* _engine;
+    Buffer _buff;
 
     void render_dockspace();
 };

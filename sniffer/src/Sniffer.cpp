@@ -5,11 +5,11 @@
 
 Sniffer::Sniffer() {
     Kikan::Engine::init();
-    engine = Kikan::Engine::Kikan();
+    _engine = Kikan::Engine::Kikan();
 
     running = true;
 
-    Kikan::StdRenderer* renderer = (Kikan::StdRenderer*)engine->getRenderer();
+    Kikan::StdRenderer* renderer = (Kikan::StdRenderer*)_engine->getRenderer();
     Kikan::Camera camera;
     renderer->mvp = camera.matrix();
     renderer->overrideRender(this);
@@ -19,18 +19,17 @@ Sniffer::Sniffer() {
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     ImGui::StyleColorsDark();
-    ImGui_ImplGlfw_InitForOpenGL(((Kikan::StdRenderer*)engine->getRenderer())->getWindow(), true);
+    ImGui_ImplGlfw_InitForOpenGL(((Kikan::StdRenderer*)_engine->getRenderer())->getWindow(), true);
     ImGui_ImplOpenGL3_Init("#version 430");
 }
 
 Sniffer::~Sniffer() {
-    delete engine;
+    delete _engine;
 }
 
 void Sniffer::update() {
-    running = engine->shouldRun();
-
-    engine->update();
+    running = _engine->shouldRun();
+    _engine->update();
 }
 
 void Sniffer::preRender(Kikan::StdRenderer *renderer, double dt) {

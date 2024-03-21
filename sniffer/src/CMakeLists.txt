@@ -4,6 +4,7 @@ add_executable(sniffer
         main.cpp
 
         Sniffer.cpp
+        Buffer.cpp
 
         imgui/imgui.cpp
         imgui/imgui_demo.cpp
