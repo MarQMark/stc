@@ -18,7 +18,12 @@ private:
     void postRender(Kikan::StdRenderer* renderer, double dt) override;
 
     Kikan::Engine* _engine;
+    Kikan::StdRenderer* _renderer;
     Buffer _buff;
+
+    FILE _fd;
+
+    void render_serial_sel();
 
     void render_dockspace();
 };
