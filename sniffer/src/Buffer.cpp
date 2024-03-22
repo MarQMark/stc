@@ -1,5 +1,6 @@
 #include <cstdlib>
 #include <cstring>
+#include <cstdio>
 #include "Buffer.h"
 
 Buffer::Buffer() {
@@ -32,128 +33,104 @@ void Buffer::addData(uint8_t *data, uint32_t size) {
         memcpy(mBuf->data + mBuf->ptr, data, size);
         mBuf->ptr += mBuf->size;
     }
-
-    parse_msg();
 }
 
-void Buffer::parse_msg() {
-    uint32_t lastMsgPtr = _last_msg_ptr;
-    uint32_t lastMsgBuf = _last_msg_buf;
 
-    MBuf* mBuf = &_buffers[lastMsgBuf];
-    uint8_t* data = mBuf->data + lastMsgPtr;
+int8_t Buffer::getData(uint32_t addr, uint8_t* data, uint32_t size){
+    // get buffer
+    uint32_t bufAddr = 0;
+    MBuf* mBuf = nullptr;
+    for (int i = 0; i < _buffers.size(); ++i) {
+        mBuf = &_buffers[i];
+        if(bufAddr + mBuf->ptr < addr){
+            break;
+        }
 
-    bool eob = false; // end of buffer
+        bufAddr += mBuf->ptr;
+    }
+
+    // Address higher than size of buffer
+    if(bufAddr + mBuf->ptr > addr){
+        printf("Addr(0x%08X) not in Buffer(0x%08X)\n", addr, bufAddr + mBuf->ptr);
+        return -1;
+    }
+
+    if(mBuf->ptr > size){
+        memcpy(data, mBuf + (addr - bufAddr), size);
+        return 1;
+    }
+    else{
+        uint32_t part = size - mBuf->ptr;
+        if(getData(addr + part, data + part, size - part)){
+            memcpy(data, mBuf + (addr - bufAddr), part);
+        }
+        else{
+            return -1;
+        }
+    }
+
+    return 1;
+}
+
+void Buffer::parseMsgs() {
+    uint32_t parsing = 1;
     uint8_t sync = 0;
 
     bool parseHdr = true;
     auto* msg = new Message();
 
-    for(uint32_t i = 0; !eob; i++){
+    for(uint32_t i = 0;; i++){
 
-        if(lastMsgPtr + i >= mBuf->ptr){
-            // no message found
-            eob = true;
-            continue;
+        uint8_t* data = (uint8_t*)malloc(parsing);
+        if(getData(_last_msg_addr + i, data, parsing) == -1){
+            free(data);
+            break;
         }
-        else if(lastMsgPtr + i >= mBuf->size){
-            lastMsgBuf++;
 
-            mBuf = &_buffers[lastMsgBuf];
-            data = mBuf->data;
-            lastMsgPtr = 0;
-            i = 0;
-
-            // No part of Message
-            if(sync == 0){
-                _last_msg_ptr = lastMsgPtr;
-                _last_msg_buf = lastMsgBuf;
-            }
-        }
 
         if(sync < 4){
             if(*data == (uint8_t)(SER_MAGIC >> ((3 - sync) * 8))){
                 sync++;
+
+                if(sync == 4){
+                    parsing = sizeof(Header);
+                    msg->magic = SER_MAGIC;
+                }
             }
             else{
                 sync = 0;
             }
-            data++;
         }
         else {
 
-            uint32_t bufRem = mBuf->ptr - (lastMsgPtr + i);
             if(parseHdr){
+                // copy Header
+                memcpy(msg, data, sizeof(Header));
+                i += sizeof(Header);
 
-                // check if message split into 2 buffers
-                if(sizeof(Header) > bufRem){
-                    uint32_t msgRem = sizeof(Header) - bufRem;
-                    if(_last_msg_buf + 1 < _buffers.size() && _buffers[lastMsgBuf].ptr > msgRem){
-                        // copy rest of old buffer
-                        memcpy(msg, data - 4, bufRem + 4);
-                        // copy port in new buffer
-                        lastMsgBuf++;
-                        mBuf = &_buffers[lastMsgBuf];
-                        data = mBuf->data;
-                        memcpy(msg, data, msgRem);
-
-                        // reset ptr
-                        i = 0;
-                        lastMsgPtr = msgRem;
-                    }
-                    else{
-                        //Header not completely in buffer
-                        eob = true;
-                        continue;
-                    }
-                }
-                else{
-                    // copy Header and  Magic Number (4)
-                    memcpy(msg, data - 4, 4 + sizeof(Header));
-                    lastMsgPtr += sizeof(Header) + 4;
-                }
+                parsing = msg->hdr.len;
 
                 parseHdr = false;
             }
             else{
-                if(msg->hdr.len > bufRem){
-                    uint32_t msgRem = msg->hdr.len - bufRem;
-                    if(_last_msg_buf + 1 < _buffers.size() && _buffers[lastMsgBuf].ptr > msgRem){
-                        // copy rest of old buffer
-                        memcpy(msg, data - 4, bufRem + 4);
-                        // copy port in new buffer
-                        lastMsgBuf++;
-                        mBuf = &_buffers[lastMsgBuf];
-                        data = mBuf->data;
-                        memcpy(msg, data, msgRem);
-
-                        // reset ptr
-                        i = 0;
-                        lastMsgPtr = msgRem;
-                    }
-                    else{
-                        // Body not completely in buffer
-                        eob = true;
-                        continue;
-                    }
-                }
-                else{
-                    // copy Body
-                    memcpy(msg, data, msg->hdr.len);
-                    lastMsgPtr += msg->hdr.len;
-                }
+                memcpy(msg, data, msg->hdr.len);
+                i += msg->hdr.len;
 
                 // Add message
                 _msgs.push_back(msg);
-                _last_msg_buf = lastMsgBuf;
-                _last_msg_ptr = lastMsgPtr;
+                _last_msg_addr += i;
+
+                // Reset
                 // Add new tmp message in case no new message is contained in buffer, since msg will always get freed
                 msg = new Message();
                 sync = 0;
+                parsing = 1;
                 parseHdr = true;
             }
         }
-    }
 
+        free(data);
+    }
     delete msg;
 }
+

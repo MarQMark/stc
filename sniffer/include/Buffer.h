@@ -26,15 +26,21 @@ public:
 
     void addData(uint8_t* data, uint32_t size);
 
+    /* int8_t getData(uint8_t* data, uint32_t size)
+     *
+     * returns:
+     *   1: success
+     *  -1: failure
+     */
+    int8_t getData(uint32_t addr, uint8_t* data, uint32_t size);
 
+    void parseMsgs();
 private:
-    void parse_msg();
 
     std::vector<MBuf> _buffers;
 
     std::vector<Message*> _msgs;
-    uint32_t _last_msg_buf = 0;
-    uint32_t _last_msg_ptr = 0;
+    uint32_t _last_msg_addr = 0;
 };
 
 
