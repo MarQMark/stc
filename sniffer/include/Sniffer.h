@@ -4,6 +4,8 @@
 #include "Kikan/renderer/stdRenderer/StdRenderer.h"
 #include "Kikan/Engine.h"
 #include "Buffer.h"
+#include "SerialInterface.h"
+#include "DevSelector.h"
 
 class Sniffer : Kikan::StdRenderer::Override{
 public:
@@ -20,10 +22,11 @@ private:
     Kikan::Engine* _engine;
     Kikan::StdRenderer* _renderer;
     Buffer _buff;
+    SerialInterface _sif;
 
-    FILE _fd;
+    DevSelector devSelector = NULL;
 
-    void render_serial_sel();
+    bool _dev_error_popup = false;
 
     void render_dockspace();
 };

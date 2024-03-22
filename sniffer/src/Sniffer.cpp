@@ -1,4 +1,3 @@
-#include <glob.h>
 #include "Sniffer.h"
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui/imgui_impl_opengl3.h"
@@ -22,6 +21,8 @@ Sniffer::Sniffer() {
     ImGui::StyleColorsDark();
     ImGui_ImplGlfw_InitForOpenGL(((Kikan::StdRenderer*)_engine->getRenderer())->getWindow(), true);
     ImGui_ImplOpenGL3_Init("#version 430");
+
+    devSelector = DevSelector(&_sif);
 }
 
 Sniffer::~Sniffer() {
@@ -38,7 +39,7 @@ void Sniffer::preRender(Kikan::StdRenderer *renderer, double dt) {
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    render_serial_sel();
+    devSelector.render(renderer);
     //render_dockspace();
 }
 
@@ -106,52 +107,4 @@ void Sniffer::render_dockspace() {
     ImGui::End();
 }
 
-void Sniffer::render_serial_sel() {
 
-    float textHeight = ImGui::GetTextLineHeight() * 3;
-
-    ImGui::SetNextWindowSize(ImVec2(_renderer->getWidth(), textHeight), ImGuiCond_Always);
-    ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
-    ImGui::Begin("Device List Header", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
-
-    float textWidth = ImGui::CalcTextSize("Please select the device to listen to:").x;
-    float windowWidth = ImGui::GetWindowWidth();
-    ImGui::SetCursorPosX((windowWidth - textWidth) * 0.5f);
-    ImGui::SetCursorPosY(ImGui::GetTextLineHeight());
-    ImGui::Text("Please select the device to listen to:");
-
-    ImGui::SetNextWindowSize(ImVec2(_renderer->getWidth(), _renderer->getHeight() - textHeight), ImGuiCond_Always);
-    ImGui::SetNextWindowPos(ImVec2(0, textHeight), ImGuiCond_Always);
-    ImGui::Begin("Device List", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
-
-    glob_t glob_result;
-    glob("/dev/ttyUSB*", GLOB_TILDE, NULL, &glob_result);
-    for(unsigned int i = 0; i < glob_result.gl_pathc; ++i){
-        float textWidth = ImGui::CalcTextSize(glob_result.gl_pathv[i]).x;
-        float windowWidth = ImGui::GetWindowWidth();
-        ImGui::SetCursorPosX((windowWidth - textWidth) * 0.5f);
-        ImGui::Text("%s", glob_result.gl_pathv[i]);
-    }
-    globfree(&glob_result);
-
-    glob("/dev/serial*", GLOB_TILDE, NULL, &glob_result);
-    for(unsigned int i = 0; i < glob_result.gl_pathc; ++i){
-        float textWidth = ImGui::CalcTextSize(glob_result.gl_pathv[i]).x;
-        float windowWidth = ImGui::GetWindowWidth();
-        ImGui::SetCursorPosX((windowWidth - textWidth) * 0.5f);
-        ImGui::Text("%s", glob_result.gl_pathv[i]);
-    }
-    globfree(&glob_result);
-
-    glob("/dev/UART*", GLOB_TILDE, NULL, &glob_result);
-    for(unsigned int i = 0; i < glob_result.gl_pathc; ++i){
-        float textWidth = ImGui::CalcTextSize(glob_result.gl_pathv[i]).x;
-        float windowWidth = ImGui::GetWindowWidth();
-        ImGui::SetCursorPosX((windowWidth - textWidth) * 0.5f);
-        ImGui::Text("%s", glob_result.gl_pathv[i]);
-    }
-    globfree(&glob_result);
-
-    ImGui::End();
-    ImGui::End();
-}
