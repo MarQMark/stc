@@ -39,8 +39,21 @@ void Sniffer::preRender(Kikan::StdRenderer *renderer, double dt) {
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    devSelector.render(renderer);
-    //render_dockspace();
+    if(_sif.getFD() != -1){
+        uint8_t* data = nullptr;
+        uint32_t src;
+        uint32_t len;
+        if((data = _sif.sIFread(&src, &len)) != nullptr){
+            printf("recv data %d\n", len);
+
+            _buffs[src].addData(data, len);
+            _buffs[src].parseMsgs();
+        }
+        render_dockspace();
+    }
+    else{
+        devSelector.render(renderer);
+    }
 }
 
 void Sniffer::postRender(Kikan::StdRenderer *renderer, double dt) {
@@ -101,10 +114,87 @@ void Sniffer::render_dockspace() {
         ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
     }
 
+    render_menubar();
+    if(_view_msgs)
+        render_msgs();
+    if(_view_hex)
+        render_hex();
+    if(_view_details)
+        render_details();
+
     bool show_demo_window = true;
     ImGui::ShowDemoWindow(&show_demo_window);
 
     ImGui::End();
+}
+
+void Sniffer::render_menubar() {
+    if(ImGui::BeginMainMenuBar()) {
+        if (ImGui::BeginMenu("File")) {
+
+        }
+        if (ImGui::BeginMenu("View")) {
+            ImGui::MenuItem("Messages", nullptr, &_view_msgs);
+            ImGui::MenuItem("Hex", nullptr, &_view_hex);
+            ImGui::MenuItem("Details", nullptr, &_view_details);
+            ImGui::EndMenu();
+        }
+        ImGui::EndMainMenuBar();
+    }
+}
+
+void Sniffer::render_actionbar() {
+
+}
+
+struct RowData {
+    std::string src;
+    std::string time;
+    std::string value;
+};
+
+void Sniffer::render_msgs() {
+    ImGui::Begin("Messages");
+
+    ImGui::Text("Src");
+    ImGui::SameLine(150);
+    ImGui::Text("Time");
+    ImGui::SameLine(300);
+    ImGui::Text("Value");
+
+    std::vector<RowData> tableData = {
+            {"Source 1", "10:00", "100"},
+            {"Source 2", "10:15", "150"},
+            {"Source 3", "10:30", "200"}
+    };
+
+    ImGui::Separator();
+    // Rows
+    for (size_t i = 0; i < tableData.size(); ++i) {
+        bool isSelected = ImGui::Selectable((tableData[i].src + "##Row" + std::to_string(i)).c_str());
+        ImGui::SameLine(150);
+        ImGui::Selectable((tableData[i].time + "##Row" + std::to_string(i)).c_str());
+        ImGui::SameLine(300);
+        ImGui::Selectable((tableData[i].value + "##Row" + std::to_string(i)).c_str());
+
+        // Handle row selection logic here
+        if (isSelected) {
+            // Handle the selection of the entire row
+            // For example, you can store the selected row index or perform some action
+            // This code simply prints the selected row index to the console
+            std::cout << "Selected row index: " << i << std::endl;
+        }
+    }
+
+    ImGui::End();
+}
+
+void Sniffer::render_hex() {
+
+}
+
+void Sniffer::render_details() {
+
 }
 
 

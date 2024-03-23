@@ -5,7 +5,7 @@
 #include <cstdint>
 #include "message.h"
 
-#define BUFFER_SIZE 0x400
+#define BUFFER_SIZE 0x4000
 
 class Buffer {
 public:
@@ -16,8 +16,12 @@ public:
     public:
         MBuf(uint32_t size = BUFFER_SIZE) : size(size){
             data = (uint8_t*)malloc(size);
+            memset(data, 0, size);
             ptr = 0;
         };
+        ~MBuf(){
+            free(data);
+        }
 
         uint8_t* data;
         uint32_t size;
@@ -37,7 +41,7 @@ public:
     void parseMsgs();
 private:
 
-    std::vector<MBuf> _buffers;
+    std::vector<MBuf*> _buffers;
 
     std::vector<Message*> _msgs;
     uint32_t _last_msg_addr = 0;

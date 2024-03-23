@@ -5,25 +5,26 @@
 
 Buffer::Buffer() {
     static_assert(sizeof(Message) < BUFFER_SIZE, "Message might not fit in single buffer -> not parsable");
-    _buffers.emplace_back();
+    _buffers.push_back(new MBuf());
 }
 
 Buffer::~Buffer() {
     for (auto buffer : _buffers) {
-        free(buffer.data);
+        delete buffer;
     }
 }
 
 void Buffer::addData(uint8_t *data, uint32_t size) {
-    MBuf* mBuf = &_buffers.back();
+    MBuf* mBuf = _buffers.back();
     uint32_t freeSpace = mBuf->size - mBuf->ptr;
 
     if(freeSpace < size){
+        printf("new buffer\n");
         memcpy(mBuf->data + mBuf->ptr, data, freeSpace);
         mBuf->ptr = mBuf->size;
 
-        _buffers.emplace_back();
-        MBuf* mBuf2 = &_buffers.back();
+        _buffers.push_back(new MBuf());
+        MBuf* mBuf2 = _buffers.back();
 
         uint32_t remaining = size - freeSpace;
         memcpy(mBuf2->data, data + freeSpace, remaining);
@@ -31,7 +32,7 @@ void Buffer::addData(uint8_t *data, uint32_t size) {
     }
     else{
         memcpy(mBuf->data + mBuf->ptr, data, size);
-        mBuf->ptr += mBuf->size;
+        mBuf->ptr += size;
     }
 }
 
@@ -40,9 +41,9 @@ int8_t Buffer::getData(uint32_t addr, uint8_t* data, uint32_t size){
     // get buffer
     uint32_t bufAddr = 0;
     MBuf* mBuf = nullptr;
-    for (int i = 0; i < _buffers.size(); ++i) {
-        mBuf = &_buffers[i];
-        if(bufAddr + mBuf->ptr < addr){
+    for(auto* tmp : _buffers) {
+        mBuf = tmp;
+        if(bufAddr + mBuf->ptr > addr){
             break;
         }
 
@@ -50,7 +51,7 @@ int8_t Buffer::getData(uint32_t addr, uint8_t* data, uint32_t size){
     }
 
     // Address higher than size of buffer
-    if(bufAddr + mBuf->ptr > addr){
+    if(bufAddr + mBuf->ptr < addr){
         printf("Addr(0x%08X) not in Buffer(0x%08X)\n", addr, bufAddr + mBuf->ptr);
         return -1;
     }
@@ -126,6 +127,8 @@ void Buffer::parseMsgs() {
                 sync = 0;
                 parsing = 1;
                 parseHdr = true;
+
+                printf("-------Message-------\n");
             }
         }
 

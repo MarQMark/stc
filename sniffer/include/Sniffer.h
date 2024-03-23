@@ -21,14 +21,22 @@ private:
 
     Kikan::Engine* _engine;
     Kikan::StdRenderer* _renderer;
-    Buffer _buff;
+    std::map<uint32_t, Buffer> _buffs;
     SerialInterface _sif;
 
     DevSelector devSelector = NULL;
 
-    bool _dev_error_popup = false;
+
+    bool _view_msgs = true;
+    bool _view_hex = true;
+    bool _view_details = true;
 
     void render_dockspace();
+    void render_menubar();
+    void render_actionbar();
+    void render_msgs();
+    void render_hex();
+    void render_details();
 };
 
 
