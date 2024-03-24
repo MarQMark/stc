@@ -37,6 +37,9 @@ uint8_t* SerialInterface::sIFread(uint32_t* src, uint32_t* len) {
             reset();
             return nullptr;
         }
+        else if(bytes == -1){
+            return nullptr;
+        }
 
         if(_sync < 4){
             uint32_t mask = 0xFFFFFFFF >> ((3 - _sync) * 8);

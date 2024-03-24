@@ -41,13 +41,13 @@ void Sniffer::preRender(Kikan::StdRenderer *renderer, double dt) {
 
     if(_sif.getFD() != -1){
         uint8_t* data = nullptr;
-        uint32_t src;
-        uint32_t len;
+        uint32_t src = 0;
+        uint32_t len = 0;
         if((data = _sif.sIFread(&src, &len)) != nullptr){
             printf("recv data %d\n", len);
 
             _buffs[src].addData(data, len);
-            _buffs[src].parseMsgs();
+            //_buffs[src].parseMsgs();
         }
         render_dockspace();
     }

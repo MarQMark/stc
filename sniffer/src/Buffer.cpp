@@ -57,13 +57,17 @@ int8_t Buffer::getData(uint32_t addr, uint8_t* data, uint32_t size){
     }
 
     if(mBuf->ptr > size){
-        memcpy(data, mBuf + (addr - bufAddr), size);
+        memcpy(data, mBuf->data + (addr - bufAddr), size);
         return 1;
+    }
+    else if(mBuf == _buffers.back()){
+        // already at last buffer (Msg not complete)
+        return -1;
     }
     else{
         uint32_t part = size - mBuf->ptr;
         if(getData(addr + part, data + part, size - part)){
-            memcpy(data, mBuf + (addr - bufAddr), part);
+            memcpy(data, mBuf->data + (addr - bufAddr), part);
         }
         else{
             return -1;
@@ -82,16 +86,19 @@ void Buffer::parseMsgs() {
 
     for(uint32_t i = 0;; i++){
 
-        uint8_t* data = (uint8_t*)malloc(parsing);
+        //uint8_t* data = (uint8_t*)malloc(parsing);
+        uint8_t data[parsing];
         if(getData(_last_msg_addr + i, data, parsing) == -1){
-            free(data);
+            //free(data);
             break;
         }
-
+        printf("Buff[%d]: 0x%02X,  parsing: %d\n",_last_msg_addr + i, *data, parsing);
 
         if(sync < 4){
-            if(*data == (uint8_t)(SER_MAGIC >> ((3 - sync) * 8))){
+            if(*data == (uint8_t)(SER_MAGIC >> (sync * 8))){
                 sync++;
+
+                printf("sync: %d/4\n", sync);
 
                 if(sync == 4){
                     parsing = sizeof(Header);
@@ -106,7 +113,7 @@ void Buffer::parseMsgs() {
 
             if(parseHdr){
                 // copy Header
-                memcpy(msg, data, sizeof(Header));
+                memcpy(&msg->hdr, data, sizeof(Header));
                 i += sizeof(Header);
 
                 parsing = msg->hdr.len;
@@ -114,7 +121,7 @@ void Buffer::parseMsgs() {
                 parseHdr = false;
             }
             else{
-                memcpy(msg, data, msg->hdr.len);
+                memcpy(&msg->bdy, data, msg->hdr.len);
                 i += msg->hdr.len;
 
                 // Add message
@@ -132,7 +139,7 @@ void Buffer::parseMsgs() {
             }
         }
 
-        free(data);
+        //free(data);
     }
     delete msg;
 }

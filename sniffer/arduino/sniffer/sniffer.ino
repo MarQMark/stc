@@ -28,6 +28,7 @@ struct __attribute__((__packed__)) sifMsg{
   uint32_t magic;
   uint32_t len;
   uint32_t src;
+  Message msg;
 } typedef sifMsg;
 
 
@@ -46,18 +47,18 @@ void setup() {
 
 void loop() {
 
-  Message msg;
-  msg.magic = SER_MAGIC;
-  msg.hdr.id = id;
-  msg.hdr.len = sizeof(Body);
-  memset(msg.bdy.data, 0xFF, 8);
+  sifMsg msg;
+  msg.magic = MAGIC;
+  msg.len = sizeof(Message);
+  msg.src = id % 2;
 
-  sifMsg msg2;
-  msg2.magic = MAGIC;
-  msg2.len = sizeof(Message);
-  msg2.src = id % 2;
+  msg.msg.magic = SER_MAGIC;
+  msg.msg.hdr.id = id;
+  msg.msg.hdr.len = sizeof(Body);
+  memset(msg.msg.bdy.data, 0xFF, 8);
 
-  Serial.write((uint8_t*)&msg2, msg2.len);
+
+  Serial.write((uint8_t*)&msg, msg.len + 12);
 
   id++;
   delay(1000);
