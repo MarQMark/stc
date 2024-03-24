@@ -82,7 +82,7 @@ void Buffer::parseMsgs() {
     uint8_t sync = 0;
 
     bool parseHdr = true;
-    auto* msg = new Message();
+    Message* msg = (Message*)malloc(sizeof(Message));//new Message();
 
     for(uint32_t i = 0;; i++){
 
@@ -130,7 +130,7 @@ void Buffer::parseMsgs() {
 
                 // Reset
                 // Add new tmp message in case no new message is contained in buffer, since msg will always get freed
-                msg = new Message();
+                msg = (Message*)malloc(sizeof(Message));
                 sync = 0;
                 parsing = 1;
                 parseHdr = true;
@@ -141,6 +141,6 @@ void Buffer::parseMsgs() {
 
         //free(data);
     }
-    delete msg;
+    free(msg);
 }
 

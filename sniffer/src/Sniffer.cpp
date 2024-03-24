@@ -47,7 +47,7 @@ void Sniffer::preRender(Kikan::StdRenderer *renderer, double dt) {
             printf("recv data %d\n", len);
 
             _buffs[src].addData(data, len);
-            //_buffs[src].parseMsgs();
+            _buffs[src].parseMsgs();
         }
         render_dockspace();
     }
@@ -170,7 +170,27 @@ void Sniffer::render_msgs() {
 
     ImGui::Separator();
     // Rows
-    for (size_t i = 0; i < tableData.size(); ++i) {
+    for(int i = 0; i < _buffs[0]._msgs.size(); i++){
+        auto msg = _buffs[0]._msgs[i];
+
+        bool isSelected = ImGui::Selectable(("0 ##Row" + std::to_string(i)).c_str());
+        ImGui::SameLine(150);
+        ImGui::Selectable(("na ##Row" + std::to_string(i)).c_str());
+        ImGui::SameLine(300);
+
+        char buf[256];
+        sprintf(buf, "0x%08X  0x%04X 0x%04X 0x%08X 0x%02X", msg->magic, msg->hdr.id, msg->hdr.len, msg->hdr.tcn, msg->hdr.tcf);
+        ImGui::Selectable((std::string(buf) + "##Row" + std::to_string(i)).c_str());
+
+        if (isSelected) {
+            // Handle the selection of the entire row
+            // For example, you can store the selected row index or perform some action
+            // This code simply prints the selected row index to the console
+            std::cout << "Selected row index: " << msg->hdr.id << std::endl;
+        }
+    }
+
+    /*for (size_t i = 0; i < tableData.size(); ++i) {
         bool isSelected = ImGui::Selectable((tableData[i].src + "##Row" + std::to_string(i)).c_str());
         ImGui::SameLine(150);
         ImGui::Selectable((tableData[i].time + "##Row" + std::to_string(i)).c_str());
@@ -184,7 +204,7 @@ void Sniffer::render_msgs() {
             // This code simply prints the selected row index to the console
             std::cout << "Selected row index: " << i << std::endl;
         }
-    }
+    }*/
 
     ImGui::End();
 }

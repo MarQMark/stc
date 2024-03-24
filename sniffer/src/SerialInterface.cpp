@@ -57,6 +57,11 @@ uint8_t* SerialInterface::sIFread(uint32_t* src, uint32_t* len) {
 
                     uint8_t* data = (uint8_t*)malloc(_msg.len);
                     bytes = read(_fd, data, _msg.len);
+                    if(bytes == -1){
+                        reset();
+                        return nullptr;
+                    }
+
                     *len = bytes;
                     *src = _msg.src;
 

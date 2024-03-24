@@ -39,11 +39,11 @@ public:
     int8_t getData(uint32_t addr, uint8_t* data, uint32_t size);
 
     void parseMsgs();
+    std::vector<Message*> _msgs;
 private:
 
     std::vector<MBuf*> _buffers;
 
-    std::vector<Message*> _msgs;
     uint32_t _last_msg_addr = 0;
 };
 
