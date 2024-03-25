@@ -7,13 +7,15 @@
 
 class DevSelector {
 public:
-    DevSelector(SerialInterface* sIF);
+    DevSelector(SerialInterface* sIF, uint64_t* timestamp);
     ~DevSelector();
 
     void render(Kikan::StdRenderer* renderer);
 
 private:
     void render_dev_selectable(const char* dev);
+
+    uint64_t* _timestamp;
 
     SerialInterface* _sif;
     bool _err_popup = false;

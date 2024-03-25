@@ -38,8 +38,7 @@ public:
      */
     int8_t getData(uint32_t addr, uint8_t* data, uint32_t size);
 
-    void parseMsgs();
-    std::vector<Message*> _msgs;
+    void parseMsgs(std::vector<Message*> *msgs);
 private:
 
     std::vector<MBuf*> _buffers;

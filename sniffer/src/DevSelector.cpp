@@ -4,7 +4,7 @@
 #include "DevSelector.h"
 #include "imgui/imgui.h"
 
-DevSelector::DevSelector(SerialInterface* sif) : _sif(sif) {
+DevSelector::DevSelector(SerialInterface* sif, uint64_t* timestamp) : _sif(sif), _timestamp(timestamp) {
 }
 
 DevSelector::~DevSelector() {
@@ -84,5 +84,9 @@ void DevSelector::render_dev_selectable(const char* dev){
             _err_popup = true;
         }
         printf("%s\n", dev);
+
+        struct timespec spec;
+        clock_gettime(CLOCK_REALTIME, &spec);
+        *_timestamp = (spec.tv_nsec / 1000000) + (spec.tv_sec * 1000);
     }
 }

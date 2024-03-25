@@ -52,7 +52,7 @@ int8_t Buffer::getData(uint32_t addr, uint8_t* data, uint32_t size){
 
     // Address higher than size of buffer
     if(bufAddr + mBuf->ptr < addr){
-        printf("Addr(0x%08X) not in Buffer(0x%08X)\n", addr, bufAddr + mBuf->ptr);
+        //printf("Addr(0x%08X) not in Buffer(0x%08X)\n", addr, bufAddr + mBuf->ptr);
         return -1;
     }
 
@@ -77,7 +77,7 @@ int8_t Buffer::getData(uint32_t addr, uint8_t* data, uint32_t size){
     return 1;
 }
 
-void Buffer::parseMsgs() {
+void Buffer::parseMsgs(std::vector<Message*> *msgs) {
     uint32_t parsing = 1;
     uint8_t sync = 0;
 
@@ -92,13 +92,10 @@ void Buffer::parseMsgs() {
             //free(data);
             break;
         }
-        printf("Buff[%d]: 0x%02X,  parsing: %d\n",_last_msg_addr + i, *data, parsing);
 
         if(sync < 4){
             if(*data == (uint8_t)(SER_MAGIC >> (sync * 8))){
                 sync++;
-
-                printf("sync: %d/4\n", sync);
 
                 if(sync == 4){
                     parsing = sizeof(Header);
@@ -121,11 +118,11 @@ void Buffer::parseMsgs() {
                 parseHdr = false;
             }
             else{
-                memcpy(&msg->bdy, data, msg->hdr.len);
+                memcpy(&msg->bdy, data, std::min(msg->hdr.len, (uint16_t)sizeof(Body)));
                 i += msg->hdr.len;
 
                 // Add message
-                _msgs.push_back(msg);
+                msgs->push_back(msg);
                 _last_msg_addr += i;
 
                 // Reset
@@ -134,8 +131,6 @@ void Buffer::parseMsgs() {
                 sync = 0;
                 parsing = 1;
                 parseHdr = true;
-
-                printf("-------Message-------\n");
             }
         }
 

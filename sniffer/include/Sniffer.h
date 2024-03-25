@@ -7,6 +7,19 @@
 #include "SerialInterface.h"
 #include "DevSelector.h"
 
+struct PacketInfo{
+    PacketInfo() = default;
+    PacketInfo(uint32_t src, uint64_t timestamp, Message* msg){
+        this->src = src;
+        this->timestamp = timestamp;
+        this->msg = msg;
+    };
+
+    uint32_t src;
+    uint64_t timestamp;
+    Message* msg;
+};
+
 class Sniffer : Kikan::StdRenderer::Override{
 public:
     Sniffer();
@@ -21,11 +34,19 @@ private:
 
     Kikan::Engine* _engine;
     Kikan::StdRenderer* _renderer;
-    std::map<uint32_t, Buffer> _buffs;
+
+    std::map<uint32_t, Buffer*> _buffs;
+    std::vector<PacketInfo*> _packets;
     SerialInterface _sif;
 
-    DevSelector devSelector = NULL;
 
+    uint64_t _start_timestamp = 0;
+    void reset_start_timestamp();
+
+    uint32_t _sel_msg = 0;
+
+
+    DevSelector* _devSelector;
 
     bool _view_msgs = true;
     bool _view_hex = true;

@@ -55,7 +55,7 @@ void loop() {
   msg.msg.magic = SER_MAGIC;
   msg.msg.hdr.id = id;
   msg.msg.hdr.len = sizeof(Body);
-  memset(msg.msg.bdy.data, 0xFF, 8);
+  memset(msg.msg.bdy.data, 0xFF, 32);
 
 
   Serial.write((uint8_t*)&msg, msg.len + 12);
