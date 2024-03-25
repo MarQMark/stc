@@ -254,7 +254,50 @@ void Sniffer::render_hex() {
 }
 
 void Sniffer::render_details() {
+    ImGui::Begin("Details");
 
+    if(_packets.empty()){
+        ImGui::End();
+        return;
+    }
+    Message* msg = _packets[_sel_msg]->msg;
+
+    char item[32];
+    sprintf(item, "Magic Number: 0x%04X", msg->magic);
+    if (ImGui::TreeNode(item)) {
+        ImGui::Text("\t0x%04X (%d)", msg->magic, msg->magic);
+        ImGui::TreePop();
+    }
+    if (ImGui::TreeNode("Header")) {
+        sprintf(item, "ID: %d", msg->hdr.id);
+        if (ImGui::TreeNode(item)) {
+            ImGui::Text("\t0x%02X (%d)", msg->hdr.id, msg->hdr.id);
+            ImGui::TreePop();
+        }
+
+        sprintf(item, "Length: %d", msg->hdr.len);
+        if (ImGui::TreeNode(item)) {
+            ImGui::Text("\t0x%02X (%d)", msg->hdr.len, msg->hdr.len);
+            ImGui::TreePop();
+        }
+
+        sprintf(item, "TCN: %u", msg->hdr.tcn);
+        if (ImGui::TreeNode(item)) {
+            ImGui::Text("\t0x%04X (%u)", msg->hdr.tcn, msg->hdr.tcn);
+            ImGui::TreePop();
+        }
+
+        sprintf(item, "ID: %d", msg->hdr.tcf);
+        if (ImGui::TreeNode(item)) {
+            ImGui::Text("\t0x%01X (%d)", msg->hdr.tcf, msg->hdr.tcf);
+            // TODO: Add meaning
+            ImGui::TreePop();
+        }
+
+        ImGui::TreePop();
+    }
+
+    ImGui::End();
 }
 
 void Sniffer::reset_start_timestamp() {
