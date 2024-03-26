@@ -59,7 +59,7 @@ int8_t Buffer::getData(uint32_t addr, uint8_t* data, uint32_t size){
         return -1;
     }
 
-    if(mBuf->ptr > size){
+    if(mBuf->ptr >= size){
         memcpy(data, mBuf->data + (addr - bufAddr), size);
         return 1;
     }
