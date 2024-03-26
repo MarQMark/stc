@@ -31,4 +31,13 @@ target_link_directories(${PROJECT_NAME} PUBLIC external/kikan/src)
 target_link_directories(${PROJECT_NAME} PUBLIC external/kikan/src/renderer)
 target_link_directories(${PROJECT_NAME} PUBLIC external/kikan/src/ecs)
 
+#copy shaders to target folder
+add_custom_target(copy_assets ALL
+        COMMAND  ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../assets
+        ${PROJECT_BINARY_DIR}/assets
+        COMMENT "Copying assets into binary directory")
+add_dependencies(${PROJECT_NAME} copy_assets)
+
+
 target_link_libraries(sniffer Kikan)

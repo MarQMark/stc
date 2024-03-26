@@ -39,6 +39,9 @@ private:
     std::vector<PacketInfo*> _packets;
     SerialInterface _sif;
 
+    void reset();
+
+    bool _paused = false;
 
     uint64_t _start_timestamp = 0;
     void reset_start_timestamp();

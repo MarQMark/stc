@@ -2,6 +2,8 @@
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui/imgui_impl_opengl3.h"
 #include "Kikan/renderer/stdRenderer/Camera.h"
+#include "imgui/imgui_internal.h"
+#include "IconFontAwesome/IconsFontAwesome5.h"
 
 Sniffer::Sniffer() {
     Kikan::Engine::init();
@@ -23,6 +25,16 @@ Sniffer::Sniffer() {
     ImGui_ImplOpenGL3_Init("#version 430");
 
     _devSelector = new DevSelector(&_sif, &_start_timestamp);
+
+    // Setup Icon Font
+    io.Fonts->AddFontDefault();
+
+    // merge in icons from Font Awesome
+    static const ImWchar icons_ranges[] = { ICON_MIN_FA, ICON_MAX_16_FA, 0 };
+    ImFontConfig icons_config; icons_config.MergeMode = true; icons_config.PixelSnapH = true;
+    std::string fontFile("assets/");
+    fontFile += FONT_ICON_FILE_NAME_FAS;
+    io.Fonts->AddFontFromFileTTF( fontFile.c_str(), 11.0f, &icons_config, icons_ranges );
 }
 
 Sniffer::~Sniffer() {
@@ -47,7 +59,9 @@ void Sniffer::preRender(Kikan::StdRenderer *renderer, double dt) {
         if((data = _sif.sIFread(&src, &len)) != nullptr){
             if(_buffs.count(src) == 0)
                 _buffs[src] = new Buffer;
-            _buffs[src]->addData(data, len);
+
+            if(!_paused)
+                _buffs[src]->addData(data, len);
         }
 
         for (auto buffer : _buffs) {
@@ -133,6 +147,7 @@ void Sniffer::render_dockspace() {
 
 void Sniffer::render_main(){
     render_menubar();
+    render_actionbar();
     if(_view_msgs)
         render_msgs();
     if(_view_hex)
@@ -147,23 +162,52 @@ void Sniffer::render_main(){
 }
 
 void Sniffer::render_menubar() {
-    if(ImGui::BeginMainMenuBar()) {
-        if (ImGui::BeginMenu("File")) {
+    ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_MenuBar;
+    float height = ImGui::GetFrameHeight();
 
+    if(ImGui::BeginViewportSideBar("##MainStatusBar", NULL, ImGuiDir_Up, height, window_flags)) {
+        if (ImGui::BeginMenuBar()) {
+            if (ImGui::BeginMenu("File")) {
+
+                ImGui::EndMenu();
+            }
+            if (ImGui::BeginMenu("View")) {
+                ImGui::MenuItem("Messages", nullptr, &_view_msgs);
+                ImGui::MenuItem("Hex", nullptr, &_view_hex);
+                ImGui::MenuItem("Details", nullptr, &_view_details);
+                ImGui::MenuItem("Buffers", nullptr, &_view_buffers);
+                ImGui::EndMenu();
+            }
+            ImGui::EndMenuBar();
         }
-        if (ImGui::BeginMenu("View")) {
-            ImGui::MenuItem("Messages", nullptr, &_view_msgs);
-            ImGui::MenuItem("Hex", nullptr, &_view_hex);
-            ImGui::MenuItem("Details", nullptr, &_view_details);
-            ImGui::MenuItem("Buffers", nullptr, &_view_buffers);
-            ImGui::EndMenu();
-        }
-        ImGui::EndMainMenuBar();
+        ImGui::End();
     }
 }
 
 void Sniffer::render_actionbar() {
+    ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_MenuBar;
+    float height = ImGui::GetFrameHeight() * 1.5;
 
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(7, 7));
+    if(ImGui::BeginViewportSideBar("##SecondaryMenuBar", NULL, ImGuiDir_Up, height, window_flags)) {
+
+        if (ImGui::BeginMenuBar()) {
+
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(5, 5));
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 4);
+            _paused = _paused != ImGui::Button(_paused ? ICON_FA_PLAY : ICON_FA_PAUSE, ImVec2(20, 20));
+
+            if(ImGui::Button(ICON_FA_REDO_ALT, ImVec2(20, 20))){
+                reset();
+            }
+
+            ImGui::PopStyleVar();
+
+            ImGui::EndMenuBar();
+        }
+        ImGui::End();
+    }
+    ImGui::PopStyleVar();
 }
 
 void Sniffer::render_msgs() {
@@ -364,6 +408,24 @@ void Sniffer::render_buffers() {
     free(data);
 
     ImGui::End();
+}
+
+void Sniffer::reset() {
+    _sel_msg = 0;
+    _sel_buf_src = 0;
+
+    for(auto pair : _buffs){
+        delete pair.second;
+    }
+    _buffs.clear();
+
+    for (auto* packet : _packets) {
+        delete packet->msg;
+        delete packet;
+    }
+    _packets.clear();
+
+    reset_start_timestamp();
 }
 
 
