@@ -44,20 +44,23 @@ private:
     void reset_start_timestamp();
 
     uint32_t _sel_msg = 0;
-
+    uint32_t _sel_buf_src = 0;
 
     DevSelector* _devSelector;
 
     bool _view_msgs = true;
     bool _view_hex = true;
     bool _view_details = true;
+    bool _view_buffers = true;
 
     void render_dockspace();
+    void render_main();
     void render_menubar();
     void render_actionbar();
     void render_msgs();
     void render_hex();
     void render_details();
+    void render_buffers();
 };
 
 

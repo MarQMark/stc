@@ -126,6 +126,12 @@ void Sniffer::render_dockspace() {
         ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
     }
 
+    render_main();
+
+    ImGui::End();
+}
+
+void Sniffer::render_main(){
     render_menubar();
     if(_view_msgs)
         render_msgs();
@@ -133,11 +139,11 @@ void Sniffer::render_dockspace() {
         render_hex();
     if(_view_details)
         render_details();
+    if(_view_buffers)
+        render_buffers();
 
     bool show_demo_window = true;
     ImGui::ShowDemoWindow(&show_demo_window);
-
-    ImGui::End();
 }
 
 void Sniffer::render_menubar() {
@@ -149,6 +155,7 @@ void Sniffer::render_menubar() {
             ImGui::MenuItem("Messages", nullptr, &_view_msgs);
             ImGui::MenuItem("Hex", nullptr, &_view_hex);
             ImGui::MenuItem("Details", nullptr, &_view_details);
+            ImGui::MenuItem("Buffers", nullptr, &_view_buffers);
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
@@ -311,6 +318,53 @@ void Sniffer::reset_start_timestamp() {
     struct timespec spec;
     clock_gettime(CLOCK_REALTIME, &spec);
     _start_timestamp = (spec.tv_nsec / 1000000) + (spec.tv_sec * 1000);
+}
+
+void Sniffer::render_buffers() {
+    ImGui::Begin("Buffers");
+
+    std::vector<std::string> srcs;
+    for (auto pair : _buffs) {
+        srcs.push_back(std::to_string(pair.first));
+    }
+
+    if(srcs.empty()){
+        ImGui::End();
+        return;
+    }
+
+    if (ImGui::BeginCombo("Buffer Source", srcs[_sel_buf_src].c_str()))
+    {
+        for (int n = 0; n < srcs.size(); n++)
+        {
+            if (ImGui::Selectable(srcs[n].c_str(), _sel_buf_src == n))
+                _sel_buf_src = n;
+
+            //if (is_selected)
+            //    ImGui::SetItemDefaultFocus();
+        }
+        ImGui::EndCombo();
+    }
+
+    ImGui::Separator();
+
+    ImGui::Text("Buffer");
+    Buffer* buf = _buffs[std::stoi(srcs[_sel_buf_src])];
+    uint32_t size = buf->size();
+    uint32_t addr = 0;
+    char str[76];
+    uint8_t* data = (uint8_t*)malloc(size);
+    buf->getData(0, data, size);
+
+    for (int i = 0; i < size; i += 16) {
+        format_hex(str, addr, data + i, std::min(16U, size - i));
+        ImGui::Text("%s", str);
+        addr += 0x10;
+    }
+
+    free(data);
+
+    ImGui::End();
 }
 
 

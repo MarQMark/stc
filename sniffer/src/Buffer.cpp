@@ -34,6 +34,8 @@ void Buffer::addData(uint8_t *data, uint32_t size) {
         memcpy(mBuf->data + mBuf->ptr, data, size);
         mBuf->ptr += size;
     }
+
+    _size += size;
 }
 
 
@@ -52,6 +54,7 @@ int8_t Buffer::getData(uint32_t addr, uint8_t* data, uint32_t size){
 
     // Address higher than size of buffer
     if(bufAddr + mBuf->ptr < addr){
+        // TODO: optimize with _size, but I am too tired to tell if it actually works
         //printf("Addr(0x%08X) not in Buffer(0x%08X)\n", addr, bufAddr + mBuf->ptr);
         return -1;
     }
@@ -137,5 +140,9 @@ void Buffer::parseMsgs(std::vector<Message*> *msgs) {
         //free(data);
     }
     free(msg);
+}
+
+uint32_t Buffer::size() const {
+    return _size;
 }
 
