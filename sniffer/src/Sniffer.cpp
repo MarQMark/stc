@@ -222,14 +222,13 @@ void format_hex(char* str, uint32_t addr, uint8_t *data, uint32_t len){
     memset(tmp, 0, 0x10);
     memcpy(tmp, data, len);
 
-    sprintf(str, "%04X | %02X %02X %02X %02X %02X %02X %02X %02X  %02X %02X %02X %02X %02X %02X %02X %02X  |%c%c%c%c%c%c%c%c|",
+    sprintf(str, "%04X | %02X %02X %02X %02X %02X %02X %02X %02X  %02X %02X %02X %02X %02X %02X %02X %02X  |%c%c%c%c%c%c%c%c %c%c%c%c%c%c%c%c|",
             addr,
             tmp[0], tmp[1], tmp[2], tmp[3], tmp[4], tmp[5], tmp[6], tmp[7],
             tmp[8], tmp[9], tmp[10], tmp[11], tmp[12], tmp[13], tmp[14], tmp[15],
             to_aasci(tmp[0]), to_aasci(tmp[1]), to_aasci(tmp[2]), to_aasci(tmp[3]), to_aasci(tmp[4]), to_aasci(tmp[5]), to_aasci(tmp[6]), to_aasci(tmp[7]),
             to_aasci(tmp[8]), to_aasci(tmp[9]), to_aasci(tmp[10]), to_aasci(tmp[11]), to_aasci(tmp[12]), to_aasci(tmp[13]), to_aasci(tmp[14]), to_aasci(tmp[15]));
 
-    str[75] = '\0';
     free(tmp);
 }
 
@@ -243,7 +242,7 @@ void Sniffer::render_hex() {
 
     Message* msg = _packets[_sel_msg]->msg;
     uint32_t addr = 0;
-    char str[76];
+    char str[128];
 
     ImGui::Text("Magic Number");
     format_hex(str, addr, (uint8_t*)&msg->magic, 4);
@@ -352,7 +351,7 @@ void Sniffer::render_buffers() {
     Buffer* buf = _buffs[std::stoi(srcs[_sel_buf_src])];
     uint32_t size = buf->size();
     uint32_t addr = 0;
-    char str[76];
+    char str[128];
     uint8_t* data = (uint8_t*)malloc(size);
     buf->getData(0, data, size);
 
