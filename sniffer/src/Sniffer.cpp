@@ -162,6 +162,13 @@ void Sniffer::render_actionbar() {
 void Sniffer::render_msgs() {
     ImGui::Begin("Messages");
 
+    if(ImGui::IsWindowFocused()){
+        if(_engine->getInput()->keyXPressed(Kikan::Key::DOWN) && _sel_msg < _packets.size() - 1)
+            _sel_msg++;
+        else if(_engine->getInput()->keyXPressed(Kikan::Key::UP) && _sel_msg > 0)
+            _sel_msg--;
+    }
+
     ImGui::Text("No");
     ImGui::SameLine(50);
     ImGui::Text("Src");
@@ -262,32 +269,32 @@ void Sniffer::render_details() {
     }
     Message* msg = _packets[_sel_msg]->msg;
 
-    char item[32];
+    char item[64];
     sprintf(item, "Magic Number: 0x%04X", msg->magic);
     if (ImGui::TreeNode(item)) {
         ImGui::Text("\t0x%04X (%d)", msg->magic, msg->magic);
         ImGui::TreePop();
     }
     if (ImGui::TreeNode("Header")) {
-        sprintf(item, "ID: %d", msg->hdr.id);
+        sprintf(item, "ID: %d###id", msg->hdr.id);
         if (ImGui::TreeNode(item)) {
             ImGui::Text("\t0x%02X (%d)", msg->hdr.id, msg->hdr.id);
             ImGui::TreePop();
         }
 
-        sprintf(item, "Length: %d", msg->hdr.len);
+        sprintf(item, "Length: %d###len", msg->hdr.len);
         if (ImGui::TreeNode(item)) {
             ImGui::Text("\t0x%02X (%d)", msg->hdr.len, msg->hdr.len);
             ImGui::TreePop();
         }
 
-        sprintf(item, "TCN: %u", msg->hdr.tcn);
+        sprintf(item, "TCN: %u###tcn", msg->hdr.tcn);
         if (ImGui::TreeNode(item)) {
             ImGui::Text("\t0x%04X (%u)", msg->hdr.tcn, msg->hdr.tcn);
             ImGui::TreePop();
         }
 
-        sprintf(item, "ID: %d", msg->hdr.tcf);
+        sprintf(item, "TCF: %d###tcf", msg->hdr.tcf);
         if (ImGui::TreeNode(item)) {
             ImGui::Text("\t0x%01X (%d)", msg->hdr.tcf, msg->hdr.tcf);
             // TODO: Add meaning
