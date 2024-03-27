@@ -6,6 +6,7 @@
 #include "Buffer.h"
 #include "SerialInterface.h"
 #include "DevSelector.h"
+#include "Profile.h"
 
 struct PacketInfo{
     PacketInfo() = default;
@@ -49,12 +50,20 @@ private:
     uint32_t _sel_msg = 0;
     uint32_t _sel_buf_src = 0;
 
+    uint32_t _sel_profile = 0;
+    std::string _sel_profile_str = " ";
+    std::map<std::string, Profile*> _profiles;
+
+
     DevSelector* _devSelector;
 
     bool _view_msgs = true;
     bool _view_hex = true;
     bool _view_details = true;
     bool _view_buffers = true;
+    bool _view_profiles = false;
+    bool _view_profiles_add = false;
+    bool _view_profiles_rm = false;
 
     void render_dockspace();
     void render_main();
@@ -64,6 +73,7 @@ private:
     void render_hex();
     void render_details();
     void render_buffers();
+    void render_profiles();
 };
 
 

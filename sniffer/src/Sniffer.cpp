@@ -156,6 +156,7 @@ void Sniffer::render_main(){
         render_details();
     if(_view_buffers)
         render_buffers();
+    render_profiles();
 
     bool show_demo_window = true;
     ImGui::ShowDemoWindow(&show_demo_window);
@@ -168,7 +169,7 @@ void Sniffer::render_menubar() {
     if(ImGui::BeginViewportSideBar("##MainStatusBar", NULL, ImGuiDir_Up, height, window_flags)) {
         if (ImGui::BeginMenuBar()) {
             if (ImGui::BeginMenu("File")) {
-
+                ImGui::MenuItem("Profiles", nullptr, &_view_profiles);
                 ImGui::EndMenu();
             }
             if (ImGui::BeginMenu("View")) {
@@ -426,6 +427,84 @@ void Sniffer::reset() {
     _packets.clear();
 
     reset_start_timestamp();
+}
+
+void Sniffer::render_profiles() {
+    if(_view_profiles)
+        ImGui::OpenPopup("Profiles");
+    if (ImGui::BeginPopupModal("Profiles", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+
+        std::vector<std::string> names;
+        for (auto pair : _profiles)
+            names.push_back(pair.first);
+        if(names.empty())
+            names.push_back(" ");
+        if (ImGui::BeginCombo("Profile List", names[_sel_profile].c_str()))
+        {
+            for (int n = 0; n < names.size(); n++)
+            {
+                if (ImGui::Selectable(names[n].c_str(), _sel_profile == n)){
+                    _sel_profile = n;
+                    _sel_profile_str = names[n];
+                }
+            }
+            ImGui::EndCombo();
+        }
+        ImGui::SameLine(310);
+        if(ImGui::Button(ICON_FA_PLUS)){
+            _view_profiles_add = true;
+            _view_profiles = false;
+        }
+        ImGui::SameLine(335);
+        if(ImGui::Button(ICON_FA_MINUS)){
+            _view_profiles_rm = names[_sel_profile] != " ";
+            _view_profiles = false;
+        }
+
+        if (ImGui::Button("Close")) {
+            _view_profiles = false;
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
+    }
+
+
+    if(_view_profiles_add)
+        ImGui::OpenPopup("Profiles Add");
+    if (ImGui::BeginPopupModal("Profiles Add", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+        char name[256] = {"test"};
+        ImGui::InputText("##Enter Text", name, 256);
+        if(ImGui::Button("Confirm")){
+            _profiles[name] = new Profile;
+            _view_profiles_add = false;
+            _view_profiles = true;
+        }
+        if(ImGui::Button("Cancel")){
+            _view_profiles_add = false;
+            _view_profiles = true;
+        }
+        ImGui::EndPopup();
+    }
+
+    if(_view_profiles_rm)
+        ImGui::OpenPopup("Profiles Remove");
+    if (ImGui::BeginPopupModal("Profiles Remove", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::Text("Are you sure you want to remove %s", _sel_profile_str.c_str());
+        if(ImGui::Button("Confirm")){
+            if(_profiles[_sel_profile_str])
+                delete _profiles[_sel_profile_str];
+            _profiles.erase(_sel_profile_str);
+            _sel_profile_str = " ";
+            _sel_profile = 0;
+            _view_profiles_rm = false;
+            _view_profiles = true;
+        }
+        if(ImGui::Button("Cancel")){
+            _view_profiles_rm = false;
+            _view_profiles = true;
+        }
+        ImGui::EndPopup();
+    }
 }
 
 
