@@ -27,8 +27,8 @@ public:
     Profile();
     ~Profile();
 
-    static Profile* load();
-    static void save(Profile* profile);
+    static Profile* load(const std::string& path);
+    static void save(const std::string& name, Profile* profile);
 
     std::map<uint32_t , std::vector<ProfileType*>*> types;
 private:

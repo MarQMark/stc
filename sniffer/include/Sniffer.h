@@ -92,6 +92,9 @@ private:
     void render_profile_id_rm();
     void render_profile_type_add();
     void render_profile_type_rm();
+
+    void save_profiles();
+    void load_profiles();
 };
 
 

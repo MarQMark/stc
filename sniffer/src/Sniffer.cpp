@@ -1,4 +1,5 @@
 #include <sstream>
+#include <dirent.h>
 #include "Sniffer.h"
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui/imgui_impl_opengl3.h"
@@ -80,6 +81,10 @@ void Sniffer::preRender(Kikan::StdRenderer *renderer, double dt) {
     }
     else{
         _devSelector->render(renderer);
+
+        if(_sif.getFD() != -1){
+            load_profiles();
+        }
     }
 }
 
@@ -609,6 +614,7 @@ void Sniffer::render_profile_add() {
                 _profiles[_new_profile] = new Profile;
                 _view_profiles_add = false;
                 _view_profiles = true;
+                save_profiles();
             }
         }
         ImGui::SameLine();
@@ -671,6 +677,7 @@ void Sniffer::render_profile_id_add() {
                 _profiles[_sel_profile_str]->types[id] = new std::vector<ProfileType*>();
                 _view_profiles_id_add = false;
                 _view_profiles = true;
+                save_profiles();
             }
         }
         ImGui::SameLine();
@@ -754,6 +761,7 @@ void Sniffer::render_profile_type_add() {
                 _profiles[_sel_profile_str]->types[_sel_profile_id]->push_back(new ProfileType(_sel_profile_new_type, str, len));
                 _view_profiles_type_add = false;
                 _view_profiles = true;
+                save_profiles();
             }
         }
         ImGui::SameLine();
@@ -790,6 +798,47 @@ void Sniffer::render_profile_type_rm() {
         }
         ImGui::EndPopup();
     }
+}
+
+void Sniffer::save_profiles() {
+    for (const auto& pair : _profiles) {
+        Profile::save(pair.first, pair.second);
+    }
+}
+
+void Sniffer::load_profiles() {
+    DIR *dir;
+    struct dirent *entry;
+
+    const char *home_dir = getenv("HOME");
+    if (home_dir == NULL) {
+        fprintf(stderr, "Error: HOME environment variable not set.\n");
+        return;
+    }
+    std::stringstream ss;
+    ss << home_dir << "/STCSniffer/Profiles/";
+    dir = opendir(ss.str().c_str());
+
+    if (dir == NULL) {
+        printf("Error could not open %s: %s\n", ss.str().c_str(), strerror(errno));
+        return;
+    }
+
+    while ((entry = readdir(dir)) != NULL) {
+        if (strstr(entry->d_name, ".stc_profile") != NULL) {
+
+            std::stringstream path;
+            path << ss.str() << entry->d_name;
+
+            Profile* profile = Profile::load(path.str());
+            if(profile){
+                char* name = strtok(entry->d_name, ".");
+                _profiles[std::string(name)] = profile;
+            }
+        }
+    }
+
+
 }
 
 
