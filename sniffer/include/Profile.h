@@ -27,9 +27,9 @@ public:
     static Profile* load();
     static void save(Profile* profile);
 
+    std::map<uint32_t , std::vector<ProfileType*>*> types;
 private:
 
-    std::vector<ProfileType*> _types;
 };
 
 

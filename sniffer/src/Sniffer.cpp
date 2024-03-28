@@ -439,6 +439,7 @@ void Sniffer::render_profiles() {
             names.push_back(pair.first);
         if(names.empty())
             names.push_back(" ");
+        _sel_profile_str = names[_sel_profile];
         if (ImGui::BeginCombo("Profile List", names[_sel_profile].c_str()))
         {
             for (int n = 0; n < names.size(); n++)
@@ -451,16 +452,76 @@ void Sniffer::render_profiles() {
             ImGui::EndCombo();
         }
         ImGui::SameLine(310);
-        if(ImGui::Button(ICON_FA_PLUS)){
+        if(ImGui::Button(ICON_FA_PLUS "##Profile")){
+            memset(_new_profile, 0, 256);
             _view_profiles_add = true;
             _view_profiles = false;
         }
         ImGui::SameLine(335);
-        if(ImGui::Button(ICON_FA_MINUS)){
+        if(ImGui::Button(ICON_FA_MINUS "##Profile")){
             _view_profiles_rm = names[_sel_profile] != " ";
             _view_profiles = false;
         }
 
+
+        ImGui::Separator();
+        std::vector<std::string> ids;
+        if(_profiles.count(_sel_profile_str) != 0)
+        {
+            for (auto pair : _profiles[_sel_profile_str]->types)
+                ids.push_back(std::to_string(pair.first));
+        }
+        if(ids.empty())
+        {
+            if(ImGui::BeginCombo("ID", "")){
+                ImGui::EndCombo();
+            }
+        }
+        else {
+            _sel_profile_id = stoi(ids[_sel_profile_i]);
+            if (ImGui::BeginCombo("ID", ids[_sel_profile_i].c_str()))
+            {
+                for (int n = 0; n < ids.size(); n++)
+                {
+                    if (ImGui::Selectable(ids[n].c_str())){
+                        _sel_profile_i = n;
+                        _sel_profile_id = stoi(ids[n]);
+                    }
+                }
+                ImGui::EndCombo();
+            }
+        }
+
+        if(_profiles.count(_sel_profile_str) != 0){
+            ImGui::SameLine(310);
+            if(ImGui::Button(ICON_FA_PLUS "##ID")){
+                memset(_new_id, 0, 256);
+                _new_id[0] = '0';
+                _view_profiles_id_add = true;
+                _view_profiles = false;
+            }
+            ImGui::SameLine(335);
+            if(ImGui::Button(ICON_FA_MINUS "##ID")){
+                _view_profiles_id_rm = !ids.empty();
+                _view_profiles = false;
+            }
+        }
+
+
+
+        ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 5.0f);
+        ImGui::BeginChild("ChildR", ImVec2(0, 260), true);
+        if (ImGui::BeginTable("Types", 1, ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings))
+        {
+
+
+            ImGui::EndTable();
+        }
+        ImGui::EndChild();
+        ImGui::PopStyleVar();
+
+
+        ImGui::Separator();
         if (ImGui::Button("Close")) {
             _view_profiles = false;
             ImGui::CloseCurrentPopup();
@@ -468,43 +529,137 @@ void Sniffer::render_profiles() {
         ImGui::EndPopup();
     }
 
+    render_profile_add();
+    render_profile_rm();
+    render_profile_id_add();
+    render_profile_id_rm();
+    render_profile_type_add();
+    render_profile_type_rm();
+}
 
+void Sniffer::render_profile_add() {
     if(_view_profiles_add)
-        ImGui::OpenPopup("Profiles Add");
-    if (ImGui::BeginPopupModal("Profiles Add", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
-        char name[256] = {"test"};
-        ImGui::InputText("##Enter Text", name, 256);
-        if(ImGui::Button("Confirm")){
-            _profiles[name] = new Profile;
-            _view_profiles_add = false;
-            _view_profiles = true;
+        ImGui::OpenPopup("Add Profile");
+    if (ImGui::BeginPopupModal("Add Profile", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::InputText("##EnterText", _new_profile, 256);
+
+        std::string str(_new_profile);
+        bool valid = true;
+        if(str.empty()){
+            valid = false;
+            ImGui::Text("Name can't be empty");
         }
-        if(ImGui::Button("Cancel")){
+        else if(_profiles.count(str) != 0){
+            valid = false;
+            ImGui::Text("Profile already exists");
+        }
+
+        if(ImGui::Button("Confirm", ImVec2(100, 0))){
+            if(valid){
+                _profiles[_new_profile] = new Profile;
+                _view_profiles_add = false;
+                _view_profiles = true;
+            }
+        }
+        ImGui::SameLine();
+        if(ImGui::Button("Cancel", ImVec2(100, 0))){
             _view_profiles_add = false;
             _view_profiles = true;
         }
         ImGui::EndPopup();
     }
+}
 
+void Sniffer::render_profile_rm() {
     if(_view_profiles_rm)
-        ImGui::OpenPopup("Profiles Remove");
-    if (ImGui::BeginPopupModal("Profiles Remove", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
-        ImGui::Text("Are you sure you want to remove %s", _sel_profile_str.c_str());
-        if(ImGui::Button("Confirm")){
+        ImGui::OpenPopup("Remove Profile");
+    if (ImGui::BeginPopupModal("Remove Profile", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+        std::string text = "Are you sure you want to remove ";
+        text += _sel_profile_str;
+        ImGui::Text("%s", text.c_str());
+        float width = ImGui::CalcTextSize(text.c_str()).x;
+        if(ImGui::Button("Confirm", ImVec2(width / 2, 0))){
             if(_profiles[_sel_profile_str])
                 delete _profiles[_sel_profile_str];
             _profiles.erase(_sel_profile_str);
-            _sel_profile_str = " ";
-            _sel_profile = 0;
             _view_profiles_rm = false;
             _view_profiles = true;
         }
-        if(ImGui::Button("Cancel")){
+        ImGui::SameLine();
+        if(ImGui::Button("Cancel", ImVec2(width / 2, 0))){
             _view_profiles_rm = false;
             _view_profiles = true;
         }
         ImGui::EndPopup();
     }
+}
+
+void Sniffer::render_profile_id_add() {
+    if(_view_profiles_id_add)
+        ImGui::OpenPopup("Add ID");
+    if (ImGui::BeginPopupModal("Add ID", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::InputText("##EnterText", _new_id, 256, ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_CharsDecimal);
+
+        std::string str(_new_id);
+        uint32_t id = 0;
+        if(!str.empty())
+            id = std::stoi(_new_id);
+        bool valid = true;
+        if(str.empty()){
+            valid = false;
+            ImGui::Text("ID can't be empty");
+        }
+        else if(_profiles[_sel_profile_str]->types.count(id) != 0){
+            valid = false;
+            ImGui::Text("ID already exists");
+        }
+
+        if(ImGui::Button("Confirm", ImVec2(100, 0))){
+            if(valid){
+                _profiles[_sel_profile_str]->types[id] = new std::vector<ProfileType*>();
+                _view_profiles_id_add = false;
+                _view_profiles = true;
+            }
+        }
+        ImGui::SameLine();
+        if(ImGui::Button("Cancel", ImVec2(100, 0))){
+            _view_profiles_id_add = false;
+            _view_profiles = true;
+        }
+        ImGui::EndPopup();
+    }
+}
+
+void Sniffer::render_profile_id_rm() {
+    if(_view_profiles_id_rm)
+        ImGui::OpenPopup("Remove ID");
+    if (ImGui::BeginPopupModal("Remove ID", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+        std::string text = "Are you sure you want to remove ";
+        text += std::to_string(_sel_profile_id);
+        ImGui::Text("%s", text.c_str());
+        float width = ImGui::CalcTextSize(text.c_str()).x;
+        if(ImGui::Button("Confirm", ImVec2(width / 2, 0))){
+            if(_profiles[_sel_profile_str]->types[_sel_profile_id])
+                delete _profiles[_sel_profile_str]->types[_sel_profile_id];
+            _profiles[_sel_profile_str]->types.erase(_sel_profile_id);
+            _view_profiles_id_rm = false;
+            _view_profiles = true;
+        }
+        ImGui::SameLine();
+        if(ImGui::Button("Cancel", ImVec2(width / 2, 0))){
+            _view_profiles_id_rm = false;
+            _view_profiles = true;
+        }
+        ImGui::EndPopup();
+    }
+}
+
+void Sniffer::render_profile_type_add() {
+
+}
+
+void Sniffer::render_profile_type_rm() {
+
 }
 
 

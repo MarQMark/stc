@@ -28,8 +28,11 @@ Profile::Profile() {
 }
 
 Profile::~Profile() {
-    for (auto* type : _types) {
-        delete type;
+    for (auto pair : types) {
+        for (auto* type : *pair.second) {
+            delete type;
+        }
+        // TODO: Fix
     }
 }
 

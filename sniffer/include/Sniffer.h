@@ -51,7 +51,11 @@ private:
     uint32_t _sel_buf_src = 0;
 
     uint32_t _sel_profile = 0;
+    char _new_profile[256];
+    char _new_id[256] = {"0"};
     std::string _sel_profile_str = " ";
+    uint32_t _sel_profile_i = 0;
+    uint32_t _sel_profile_id = 0;
     std::map<std::string, Profile*> _profiles;
 
 
@@ -64,6 +68,10 @@ private:
     bool _view_profiles = false;
     bool _view_profiles_add = false;
     bool _view_profiles_rm = false;
+    bool _view_profiles_id_add = false;
+    bool _view_profiles_id_rm = false;
+    bool _view_profiles_type_add = false;
+    bool _view_profiles_type_rm = false;
 
     void render_dockspace();
     void render_main();
@@ -74,6 +82,12 @@ private:
     void render_details();
     void render_buffers();
     void render_profiles();
+    void render_profile_add();
+    void render_profile_rm();
+    void render_profile_id_add();
+    void render_profile_id_rm();
+    void render_profile_type_add();
+    void render_profile_type_rm();
 };
 
 
