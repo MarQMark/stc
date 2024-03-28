@@ -9,14 +9,17 @@ class ProfileType{
 public:
     static std::map<uint32_t, const char*> typeStr;
 
-    ProfileType(uint32_t id, uint32_t type, std::string name, uint32_t len);
+    ProfileType(uint32_t type, std::string name, uint32_t len);
+
+    std::string getName();
+    uint32_t getType();
+    uint32_t getLen();
 
 private:
 
-    uint32_t _id;
+    std::string _name;
     uint32_t _type;
     uint32_t _len;
-    std::string _name;
 };
 
 class Profile {

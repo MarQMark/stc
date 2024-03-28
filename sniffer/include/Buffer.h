@@ -3,6 +3,12 @@
 
 #include <vector>
 #include <cstdint>
+
+#define MESSAGE_BODY
+union __attribute__((__packed__)) MsgBody {
+    uint8_t* data;
+} typedef Body;
+
 #include "message.h"
 
 #define BUFFER_SIZE 0x4000

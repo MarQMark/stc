@@ -17,9 +17,60 @@ std::map<uint32_t, const char*> ProfileType::typeStr = std::map<uint32_t, const 
         {12, "array"},
 };
 
-ProfileType::ProfileType(uint32_t id, uint32_t type, std::string name, uint32_t len)
-    : _id(id), _type(type), _name(std::move(name)), _len(len) {
+ProfileType::ProfileType(uint32_t type, std::string name, uint32_t len)
+    : _type(type), _name(std::move(name)) {
 
+    switch (type) {
+        case 0:
+            _len = 1;
+            break;
+        case 1:
+            _len = 2;
+            break;
+        case 2:
+            _len = 4;
+            break;
+        case 3:
+            _len = 8;
+            break;
+        case 4:
+            _len = 1;
+            break;
+        case 5:
+            _len = 2;
+            break;
+        case 6:
+            _len = 4;
+            break;
+        case 7:
+            _len = 8;
+            break;
+        case 8:
+            _len = 4;
+            break;
+        case 9:
+            _len = 8;
+            break;
+        case 10:
+            _len = 1;
+            break;
+        case 11:
+        case 12:
+            _len = len;
+            break;
+    }
+}
+
+std::string ProfileType::getName() {
+    return _name;
+}
+
+uint32_t ProfileType::getType() {
+    return _type;
+}
+
+uint32_t ProfileType::getLen() {
+    return _len;
 }
 
 

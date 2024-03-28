@@ -121,7 +121,8 @@ void Buffer::parseMsgs(std::vector<Message*> *msgs) {
                 parseHdr = false;
             }
             else{
-                memcpy(&msg->bdy, data, std::min(msg->hdr.len, (uint16_t)sizeof(Body)));
+                msg->bdy.data = (uint8_t*) malloc(msg->hdr.len);
+                memcpy(msg->bdy.data, data, msg->hdr.len);
                 i += msg->hdr.len;
 
                 // Add message

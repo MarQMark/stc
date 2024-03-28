@@ -5,8 +5,6 @@
 
 #ifndef MESSAGE_BODY
 union __attribute__((__packed__)) MsgBody {
-    //TODO
-    uint32_t data[8];
 } typedef Body;
 #endif
 

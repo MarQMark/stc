@@ -51,11 +51,15 @@ private:
     uint32_t _sel_buf_src = 0;
 
     uint32_t _sel_profile = 0;
-    char _new_profile[256];
-    char _new_id[256] = {"0"};
+    char _new_profile[24];
+    char _new_id[24] = {"0"};
+    char _new_type[24] = {""};
+    char _new_type_len[24] = {"1"};
     std::string _sel_profile_str = " ";
     uint32_t _sel_profile_i = 0;
     uint32_t _sel_profile_id = 0;
+    uint32_t _sel_profile_new_type = 0;
+    uint32_t _sel_profile_type = 0;
     std::map<std::string, Profile*> _profiles;
 
 
