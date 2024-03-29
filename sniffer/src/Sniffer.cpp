@@ -1,5 +1,6 @@
 #include <sstream>
 #include <dirent.h>
+#include <iomanip>
 #include "Sniffer.h"
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui/imgui_impl_opengl3.h"
@@ -164,8 +165,8 @@ void Sniffer::render_main(){
         render_buffers();
     render_profiles();
 
-    bool show_demo_window = true;
-    ImGui::ShowDemoWindow(&show_demo_window);
+    //bool show_demo_window = true;
+    //ImGui::ShowDemoWindow(&show_demo_window);
 }
 
 void Sniffer::render_menubar() {
@@ -208,8 +209,32 @@ void Sniffer::render_actionbar() {
                 reset();
             }
 
+            ImGui::Separator();
+
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(3, 3));
+            ImGui::SetNextItemWidth(200);
+            std::vector<std::string> profiles;
+            uint32_t n = 0, pos = 0;
+            for(const auto& pair : _profiles){
+                profiles.push_back(pair.first);
+                if(pair.first == _profile_str)
+                    pos = n;
+                n++;
+            }
+
+            if (ImGui::BeginCombo("Profiles##ProSel", _profile_str.c_str()))
+            {
+                for (int i = 0; i < profiles.size(); i++)
+                {
+                    if (ImGui::Selectable(profiles[i].c_str(), i == pos)){
+                        _profile_str = profiles[i];
+                    }
+                }
+                ImGui::EndCombo();
+            }
             ImGui::PopStyleVar();
 
+            ImGui::PopStyleVar();
             ImGui::EndMenuBar();
         }
         ImGui::End();
@@ -232,7 +257,7 @@ void Sniffer::render_msgs() {
     ImGui::Text("Src");
     ImGui::SameLine(100);
     ImGui::Text("Time");
-    ImGui::SameLine(300);
+    ImGui::SameLine(200);
     ImGui::Text("Value");
 
 
@@ -247,11 +272,22 @@ void Sniffer::render_msgs() {
         ImGui::Selectable((std::to_string(packetInfo->src) + "##Row" + std::to_string(i)).c_str());
         ImGui::SameLine(100);
         ImGui::Selectable((std::to_string(packetInfo->timestamp) + "##Row" + std::to_string(i)).c_str());
-        ImGui::SameLine(300);
+        ImGui::SameLine(200);
 
         char buf[256];
-        sprintf(buf, "0x%08X  0x%04X 0x%04X 0x%08X 0x%02X", msg->magic, msg->hdr.id, msg->hdr.len, msg->hdr.tcn, msg->hdr.tcf);
-        ImGui::Selectable((std::string(buf) + "##Row" + std::to_string(i)).c_str());
+        sprintf(buf, "ID: %d(0x%04X) Len: %u(0x%04X) TCN: %u(0x%08X)", msg->hdr.id, msg->hdr.id, msg->hdr.len, msg->hdr.len, msg->hdr.tcn, msg->hdr.tcn);
+        std::stringstream ss;
+        ss << buf;
+        if(msg->hdr.tcf & TCF_SYN)
+            ss << " SYN";
+        else if(msg->hdr.tcf & TCF_ACK)
+            ss << " ACK";
+        if(msg->hdr.tcf & TCF_RST)
+            ss << " RST";
+
+        ss << "##Row" << i;
+
+        ImGui::Selectable(ss.str().c_str());
 
         if (isSelected) {
             _sel_msg = i;
@@ -358,10 +394,92 @@ void Sniffer::render_details() {
 
         sprintf(item, "TCF: %d###tcf", msg->hdr.tcf);
         if (ImGui::TreeNode(item)) {
+            if(msg->hdr.tcf & TCF_SYN)
+                ImGui::Text("\t.......1 SYN");
+            else if(msg->hdr.tcf & TCF_ACK)
+                ImGui::Text("\t......1. ACK");
+            if(msg->hdr.tcf & TCF_RST)
+                ImGui::Text("\t.....1.. RST");
+
             ImGui::Text("\t0x%01X (%d)", msg->hdr.tcf, msg->hdr.tcf);
-            // TODO: Add meaning
             ImGui::TreePop();
         }
+
+        ImGui::TreePop();
+    }
+    if (ImGui::TreeNode("Body")) {
+
+        if(_profiles.count(_profile_str) != 0){
+            if(_profiles[_profile_str]->types.count(msg->hdr.id) != 0){
+                std::vector<ProfileType*> types = *_profiles[_profile_str]->types[msg->hdr.id];
+                uint32_t off = 0;
+                for(int i = 0; i < types.size(); i++){
+                    if(off + types[i]->getType() >= msg->hdr.len)
+                        break;
+
+                    switch (types[i]->getType()) {
+                        case 0:
+                            ImGui::Text("%s (%s): 0x%02X(%u)", types[i]->getName().c_str(), ProfileType::typeStr[types[i]->getType()], *(msg->bdy.data + off), *(msg->bdy.data + off));
+                            break;
+                        case 1:
+                            ImGui::Text("%s (%s): 0x%04X(%u)", types[i]->getName().c_str(), ProfileType::typeStr[types[i]->getType()], *(uint16_t*)(msg->bdy.data + off), *(uint16_t*)(msg->bdy.data + off));
+                            break;
+                        case 2:
+                            ImGui::Text("%s (%s): 0x%08X(%u)", types[i]->getName().c_str(), ProfileType::typeStr[types[i]->getType()], *(uint32_t*)(msg->bdy.data + off), *(uint32_t*)(msg->bdy.data + off));
+                            break;
+                        case 3:
+                            ImGui::Text("%s (%s): 0x%16lX(%lu)", types[i]->getName().c_str(), ProfileType::typeStr[types[i]->getType()], *(uint64_t*)(msg->bdy.data + off), *(uint64_t*)(msg->bdy.data + off));
+                            break;
+                        case 4:
+                            ImGui::Text("%s (%s): 0x%02X(%d)", types[i]->getName().c_str(), ProfileType::typeStr[types[i]->getType()], *(int8_t*)(msg->bdy.data + off), *(int8_t*)(msg->bdy.data + off));
+                            break;
+                        case 5:
+                            ImGui::Text("%s (%s): 0x%04X(%d)", types[i]->getName().c_str(), ProfileType::typeStr[types[i]->getType()], *(int16_t*)(msg->bdy.data + off), *(int16_t*)(msg->bdy.data + off));
+                            break;
+                        case 6:
+                            ImGui::Text("%s (%s): 0x%08X(%d)", types[i]->getName().c_str(), ProfileType::typeStr[types[i]->getType()], *(int32_t*)(msg->bdy.data + off), *(int32_t*)(msg->bdy.data + off));
+                            break;
+                        case 7:
+                            ImGui::Text("%s (%s): 0x%16lX(%ld)", types[i]->getName().c_str(), ProfileType::typeStr[types[i]->getType()], *(int64_t*)(msg->bdy.data + off), *(int64_t*)(msg->bdy.data + off));
+                            break;
+
+                        case 8:
+                            ImGui::Text("%s (%s): 0x%08X(%f)", types[i]->getName().c_str(), ProfileType::typeStr[types[i]->getType()], *(uint32_t*)(msg->bdy.data + off), *(float*)(msg->bdy.data + off));
+                            break;
+                        case 9:
+                            ImGui::Text("%s (%s): 0x%16lX(%lf)", types[i]->getName().c_str(), ProfileType::typeStr[types[i]->getType()], *(uint64_t*)(msg->bdy.data + off), *(double*)(msg->bdy.data + off));
+                            break;
+                        case 10:
+                            ImGui::Text("%s (%s): 0x%02X(%c)", types[i]->getName().c_str(), ProfileType::typeStr[types[i]->getType()], *(msg->bdy.data + off), *(char*)(msg->bdy.data + off));
+                            break;
+
+                        case 11:{
+                            char str[types[i]->getLen() + 1];
+                            strncpy(str, (const char*)(msg->bdy.data + off), types[i]->getLen());
+                            str[types[i]->getLen()] = '\0';
+                            ImGui::Text("%s (%s): %s", types[i]->getName().c_str(), ProfileType::typeStr[types[i]->getType()], str);
+                            break;
+                        }
+
+                        case 12:{
+                            std::stringstream ss;
+                            for (int j = 0; j < types[i]->getLen(); ++j) {
+                                ss << std::uppercase << std::setfill('0') << std::setw(2) << std::hex << *(msg->bdy.data + off + j) << " ";
+                            }
+                            ImGui::Text("%s (%s): %s", types[i]->getName().c_str(), ProfileType::typeStr[types[i]->getType()], ss.str().c_str());
+                        }
+                    }
+                    off += types[i]->getType();
+                }
+            }
+            else{
+                ImGui::Text("Id(%d) not in profile %s", msg->hdr.id, _profile_str.c_str());
+            }
+        }
+        else{
+            ImGui::Text("No Profile selected");
+        }
+
 
         ImGui::TreePop();
     }
@@ -461,7 +579,6 @@ void Sniffer::render_profiles() {
                     if(_sel_profile_str != names[n]){
                         _sel_profile_i = 0;
                         _sel_profile_type = 0;
-                        reset();
                     }
                     _sel_profile_str = names[n];
                 }
@@ -480,7 +597,6 @@ void Sniffer::render_profiles() {
             _view_profiles = false;
         }
 
-        ImGui::Text("Loading a different Profile will clear the Buffers");
         ImGui::Spacing();
 
         ImGui::Separator();

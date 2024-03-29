@@ -43,6 +43,7 @@ private:
     void reset();
 
     bool _paused = false;
+    std::string _profile_str;
 
     uint64_t _start_timestamp = 0;
     void reset_start_timestamp();
