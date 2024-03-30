@@ -5,7 +5,6 @@
 #include "Kikan/Engine.h"
 #include "Buffer.h"
 #include "SerialInterface.h"
-#include "DevSelector.h"
 #include "Profile.h"
 
 struct PacketInfo{
@@ -64,8 +63,10 @@ private:
     std::map<std::string, Profile*> _profiles;
 
 
-    DevSelector* _devSelector;
+    bool _dev_err_popup = false;
+    int _dev_errno = 0;
 
+    bool _dev_sel = true;
     bool _view_msgs = true;
     bool _view_hex = true;
     bool _view_details = true;
@@ -77,6 +78,9 @@ private:
     bool _view_profiles_id_rm = false;
     bool _view_profiles_type_add = false;
     bool _view_profiles_type_rm = false;
+
+    void render_dev();
+    void render_dev_sel(const char* dev);
 
     void render_dockspace();
     void render_main();

@@ -1,65 +1,63 @@
 #include "SoftwareSerial.h"
 
-union __attribute__((__packed__)) MsgBody {
-  uint32_t data[8];
-} typedef Body;
-
-#define SER_MAGIC 0xDECAFBAD
-#define TCF_SYN 0x1
-#define TCF_ACK 0x2
-#define TCF_RST 0x4
-
-struct __attribute__((__packed__)) Header {
-    uint16_t id;
-    uint16_t len;
-    uint32_t tcn; // Transmission Control Number
-    uint8_t tcf;  // 1 : SYC; 2 : ACK
-} typedef Header;
-
-struct __attribute__((__packed__)) Message {
-    uint32_t magic; // sanity check
-    Header hdr;
-    Body bdy;
-} typedef Message;
-
-
 struct __attribute__((__packed__)) sifMsg{
 #define MAGIC 0xFEE1DEAD
   uint32_t magic;
   uint32_t len;
   uint32_t src;
-  Message msg;
+  uint8_t data[256];
 } typedef sifMsg;
 
 
-SoftwareSerial sws1(2, 0);
-SoftwareSerial sws2(3, 0);
+SoftwareSerial sws1(2, 10);
+SoftwareSerial sws2(3, 11);
 
-int id = 0;
 
 void setup() {
   pinMode(2, INPUT);
   pinMode(3, INPUT);
 
-  Serial.begin(115200);
-}
 
+  Serial.begin(115200);
+//Serial.println("Init");
+
+  sws1.begin(115200);
+  sws2.begin(115200);
+  sws1.setTimeout(1);
+  sws2.setTimeout(1);
+}
 
 void loop() {
 
-  sifMsg msg;
-  msg.magic = MAGIC;
-  msg.len = sizeof(Message);
-  msg.src = id % 2;
+  //sws1.listen();
+  sifMsg msg1;
+  while(sws1.available() > 0 ){
+    int recv1 = sws1.readBytes(msg1.data, 256);
+    if(recv1 > 0){
+      Serial.println(recv1);
+      msg1.magic = MAGIC;
+      msg1.src = 2;
+      msg1.len = recv1;
+      Serial.write((uint8_t*)&msg1, msg1.len + 12);
+      delay(100);
+    }
+  }
+  
 
-  msg.msg.magic = SER_MAGIC;
-  msg.msg.hdr.id = id;
-  msg.msg.hdr.len = sizeof(Body);
-  memset(msg.msg.bdy.data, 0xFF, 32);
+  //sws2.listen();
+  sifMsg msg2;
+  while(sws2.available() > 0 ){
+    int recv2 = sws2.readBytes(msg2.data, 256);
+    if(recv2 > 0){
+      Serial.println(recv2);
+      msg2.magic = MAGIC;
+      msg2.src = 3;
+      msg2.len = recv2;
+      Serial.write((uint8_t*)&msg2, msg2.len + 12);
+      delay(100);
+    }
 
-
-  Serial.write((uint8_t*)&msg, msg.len + 12);
-
-  id++;
-  delay(1000);
+  }
+  
+  delay(100);
 }

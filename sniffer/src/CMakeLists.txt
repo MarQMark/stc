@@ -6,7 +6,6 @@ add_executable(sniffer
         Sniffer.cpp
         Buffer.cpp
         SerialInterface.cpp
-        DevSelector.cpp
         Profile.cpp
 
         imgui/imgui.cpp

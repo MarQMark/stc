@@ -1,6 +1,7 @@
 #include <sstream>
 #include <dirent.h>
 #include <iomanip>
+#include <glob.h>
 #include "Sniffer.h"
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui/imgui_impl_opengl3.h"
@@ -27,7 +28,6 @@ Sniffer::Sniffer() {
     ImGui_ImplGlfw_InitForOpenGL(((Kikan::StdRenderer*)_engine->getRenderer())->getWindow(), true);
     ImGui_ImplOpenGL3_Init("#version 430");
 
-    _devSelector = new DevSelector(&_sif, &_start_timestamp);
 
     // Setup Icon Font
     io.Fonts->AddFontDefault();
@@ -42,7 +42,6 @@ Sniffer::Sniffer() {
 
 Sniffer::~Sniffer() {
     delete _engine;
-    delete _devSelector;
 }
 
 void Sniffer::update() {
@@ -81,7 +80,7 @@ void Sniffer::preRender(Kikan::StdRenderer *renderer, double dt) {
         render_dockspace();
     }
     else{
-        _devSelector->render(renderer);
+        render_dev();
 
         if(_sif.getFD() != -1){
             load_profiles();
@@ -275,7 +274,7 @@ void Sniffer::render_msgs() {
         ImGui::SameLine(200);
 
         char buf[256];
-        sprintf(buf, "ID: %d(0x%04X) Len: %u(0x%04X) TCN: %u(0x%08X)", msg->hdr.id, msg->hdr.id, msg->hdr.len, msg->hdr.len, msg->hdr.tcn, msg->hdr.tcn);
+        sprintf(buf, "ID: %d(0x%X) Len: %u(0x%X) TCN: %u(0x%X)", msg->hdr.id, msg->hdr.id, msg->hdr.len, msg->hdr.len, msg->hdr.tcn, msg->hdr.tcn);
         std::stringstream ss;
         ss << buf;
         if(msg->hdr.tcf & TCF_SYN)
@@ -955,6 +954,85 @@ void Sniffer::load_profiles() {
     }
 
 
+}
+
+void Sniffer::render_dev() {
+    float textHeight = ImGui::GetTextLineHeight() * 5;
+
+    ImGui::SetNextWindowSize(ImVec2(_renderer->getWidth(), textHeight), ImGuiCond_Always);
+    ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
+    ImGui::Begin("Device List Header", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
+
+    float textWidth = ImGui::CalcTextSize("Select the device to listen to:").x;
+    float windowWidth = ImGui::GetWindowWidth();
+    ImGui::SetCursorPosX((windowWidth - textWidth) * 0.5f);
+    ImGui::SetCursorPosY(ImGui::GetTextLineHeight() * 2);
+    ImGui::Text("Select the device to listen to:");
+
+    ImGui::SetNextWindowSize(ImVec2(_renderer->getWidth(), _renderer->getHeight() - textHeight), ImGuiCond_Always);
+    ImGui::SetNextWindowPos(ImVec2(0, textHeight), ImGuiCond_Always);
+    ImGui::Begin("Device List", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
+
+    glob_t glob_result;
+    glob("/dev/ttyUSB*", GLOB_TILDE, NULL, &glob_result);
+    for(unsigned int i = 0; i < glob_result.gl_pathc; ++i){
+        render_dev_sel(glob_result.gl_pathv[i]);
+    }
+    globfree(&glob_result);
+
+    glob("/dev/serial*", GLOB_TILDE, NULL, &glob_result);
+    for(unsigned int i = 0; i < glob_result.gl_pathc; ++i){
+        render_dev_sel(glob_result.gl_pathv[i]);
+    }
+    globfree(&glob_result);
+
+    glob("/dev/UART*", GLOB_TILDE, NULL, &glob_result);
+    for(unsigned int i = 0; i < glob_result.gl_pathc; ++i){
+        render_dev_sel(glob_result.gl_pathv[i]);
+    }
+    globfree(&glob_result);
+
+    ImGui::End();
+    ImGui::End();
+
+    if(_dev_err_popup){
+        ImGui::OpenPopup("Error Opening Device");
+    }
+    if (ImGui::BeginPopupModal("Error Opening Device", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+
+        std::ostringstream oss;
+        oss << "Error opening " << _sif.getDev() << ": " << strerror(_dev_errno);
+
+        ImGui::Text("%s", oss.str().c_str());
+
+        float textWidth = ImGui::CalcTextSize(oss.str().c_str()).x;
+        ImGui::SetCursorPosX(textWidth * 0.25f);
+
+        if (ImGui::Button("OK", ImVec2(textWidth * .5f, 0))) {
+            _dev_err_popup = false;
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
+    }
+}
+
+void Sniffer::render_dev_sel(const char* dev) {
+    float windowWidth = ImGui::GetWindowWidth();
+    ImGui::SetCursorPosX(windowWidth * 0.25f);
+    ImGui::PushStyleVar(ImGuiStyleVar_SelectableTextAlign, ImVec2(0.5f, 0.5f));
+    ImGui::Selectable(dev, false, ImGuiSelectableFlags_None, ImVec2(windowWidth * .5f, ImGui::GetTextLineHeight() * 2.f));
+    ImGui::PopStyleVar();
+
+    if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0)){
+        if(_sif.sIFopen(dev) == -1){
+            _dev_errno = errno;
+            printf("Error opening %s: %s\n", dev, strerror(errno));
+            _dev_err_popup = true;
+        }
+        printf("%s\n", dev);
+
+        reset_start_timestamp();
+    }
 }
 
 
