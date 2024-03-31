@@ -78,6 +78,17 @@ uint8_t* SerialInterface::sIFread(uint32_t* src, uint32_t* len) {
     return nullptr;
 }
 
+uint8_t *SerialInterface::sIFread(uint32_t *len) {
+    uint8_t* data = (uint8_t*)malloc(256);
+
+    size_t bytes = read(_fd, data, 256);
+    if(bytes <= 0){
+        return nullptr;
+    }
+
+    return data;
+}
+
 const char *SerialInterface::getDev() {
     return _dev;
 }
@@ -96,3 +107,5 @@ int SerialInterface::getFD() {
 SerialInterface::~SerialInterface() {
     sIFclose();
 }
+
+

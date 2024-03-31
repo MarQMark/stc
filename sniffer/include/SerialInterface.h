@@ -13,6 +13,7 @@ public:
     int sIFopen(const char* dev);
     void sIFclose();
     uint8_t* sIFread(uint32_t* src, uint32_t* len);
+    uint8_t* sIFread(uint32_t* len);
 
     const char* getDev();
     int getFD();

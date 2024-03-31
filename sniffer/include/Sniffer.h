@@ -1,6 +1,8 @@
 #ifndef STC_SNIFFER_H
 #define STC_SNIFFER_H
 
+#include <utility>
+
 #include "Kikan/renderer/stdRenderer/StdRenderer.h"
 #include "Kikan/Engine.h"
 #include "Buffer.h"
@@ -9,15 +11,65 @@
 
 struct PacketInfo{
     PacketInfo() = default;
-    PacketInfo(uint32_t src, uint64_t timestamp, Message* msg){
-        this->src = src;
+    PacketInfo(std::string src, uint64_t timestamp, Message* msg){
+        this->src = std::move(src);
         this->timestamp = timestamp;
         this->msg = msg;
     };
 
-    uint32_t src;
+    std::string src;
     uint64_t timestamp;
     Message* msg;
+};
+
+struct DeviceInfo{
+    explicit DeviceInfo(const std::string& path) {
+        name = path.substr(5, path.size() - 5);
+        this->path = path;
+    }
+    ~DeviceInfo() {
+        delete sIf;
+    }
+
+    int open(){
+        if(sIf)
+            return 1;
+
+        sIf = new SerialInterface;
+        if(sIf->sIFopen(path.c_str()) == -1){
+            delete sIf;
+            sIf = nullptr;
+            return -1;
+        }
+
+        return 1;
+    }
+
+    void close(){
+        if(sIf){
+            delete sIf;
+            sIf = nullptr;
+        }
+    }
+
+    uint8_t* read(std::string* src, uint32_t* len){
+        if(muxed){
+            uint32_t muxSrc = 0;
+            uint8_t* data = sIf->sIFread(&muxSrc, len);
+            *src = std::string(name + ":" + std::to_string(muxSrc));
+            return data;
+        }
+        else{
+            *src = std::string(name);
+            return sIf->sIFread(len);
+        }
+    }
+
+    bool exists = true;
+    bool muxed = false;
+    std::string name;
+    std::string path;
+    SerialInterface* sIf = nullptr;
 };
 
 class Sniffer : Kikan::StdRenderer::Override{
@@ -35,9 +87,9 @@ private:
     Kikan::Engine* _engine;
     Kikan::StdRenderer* _renderer;
 
-    std::map<uint32_t, Buffer*> _buffs;
+    std::map<std::string, DeviceInfo*> _devs;
+    std::map<std::string, Buffer*> _buffs;
     std::vector<PacketInfo*> _packets;
-    SerialInterface _sif;
 
     void reset();
 
@@ -65,6 +117,7 @@ private:
 
     bool _dev_err_popup = false;
     int _dev_errno = 0;
+    std::string _dev_error;
 
     bool _dev_sel = true;
     bool _view_msgs = true;
@@ -80,7 +133,7 @@ private:
     bool _view_profiles_type_rm = false;
 
     void render_dev();
-    void render_dev_sel(const char* dev);
+    void render_dev_sel(DeviceInfo* dev);
 
     void render_dockspace();
     void render_main();

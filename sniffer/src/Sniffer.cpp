@@ -19,6 +19,8 @@ Sniffer::Sniffer() {
     Kikan::Camera camera;
     _renderer->mvp = camera.matrix();
     _renderer->overrideRender(this);
+    std::string title ("STC Sniffer");
+    _engine->setTitle(title);
 
     // Setup ImGUI
     ImGui::CreateContext();
@@ -42,6 +44,10 @@ Sniffer::Sniffer() {
 
 Sniffer::~Sniffer() {
     delete _engine;
+
+    for (auto pair : _devs) {
+        delete pair.second;
+    }
 }
 
 void Sniffer::update() {
@@ -54,16 +60,30 @@ void Sniffer::preRender(Kikan::StdRenderer *renderer, double dt) {
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    if(_sif.getFD() != -1){
-        uint8_t* data = nullptr;
-        uint32_t src = 0;
-        uint32_t len = 0;
-        if((data = _sif.sIFread(&src, &len)) != nullptr){
-            if(_buffs.count(src) == 0)
-                _buffs[src] = new Buffer;
+    if(_dev_sel){
+        render_dev();
+    }
+    else{
 
-            if(!_paused)
-                _buffs[src]->addData(data, len);
+        uint8_t* data = nullptr;
+        std::string src = " ";
+        uint32_t len = 0;
+
+        for(auto pair : _devs){
+            DeviceInfo* dev = pair.second;
+            if(!dev->sIf)
+                continue;
+
+
+            if((data = dev->read(&src, &len)) != nullptr){
+
+                if(_buffs.count(src) == 0)
+                    _buffs[src] = new Buffer;
+
+                if(!_paused)
+                    _buffs[src]->addData(data, len);
+
+            }
         }
 
         for (auto buffer : _buffs) {
@@ -78,13 +98,6 @@ void Sniffer::preRender(Kikan::StdRenderer *renderer, double dt) {
             }
         }
         render_dockspace();
-    }
-    else{
-        render_dev();
-
-        if(_sif.getFD() != -1){
-            load_profiles();
-        }
     }
 }
 
@@ -254,9 +267,9 @@ void Sniffer::render_msgs() {
     ImGui::Text("No");
     ImGui::SameLine(50);
     ImGui::Text("Src");
-    ImGui::SameLine(100);
+    ImGui::SameLine(150);
     ImGui::Text("Time");
-    ImGui::SameLine(200);
+    ImGui::SameLine(225);
     ImGui::Text("Value");
 
 
@@ -268,10 +281,10 @@ void Sniffer::render_msgs() {
 
         bool isSelected = ImGui::Selectable((std::to_string(i) + "##Row" + std::to_string(i)).c_str(), _sel_msg == i);
         ImGui::SameLine(50);
-        ImGui::Selectable((std::to_string(packetInfo->src) + "##Row" + std::to_string(i)).c_str());
-        ImGui::SameLine(100);
+        ImGui::Selectable((packetInfo->src + "##Row" + std::to_string(i)).c_str());
+        ImGui::SameLine(150);
         ImGui::Selectable((std::to_string(packetInfo->timestamp) + "##Row" + std::to_string(i)).c_str());
-        ImGui::SameLine(200);
+        ImGui::SameLine(225);
 
         char buf[256];
         sprintf(buf, "ID: %d(0x%X) Len: %u(0x%X) TCN: %u(0x%X)", msg->hdr.id, msg->hdr.id, msg->hdr.len, msg->hdr.len, msg->hdr.tcn, msg->hdr.tcn);
@@ -497,7 +510,7 @@ void Sniffer::render_buffers() {
 
     std::vector<std::string> srcs;
     for (auto pair : _buffs) {
-        srcs.push_back(std::to_string(pair.first));
+        srcs.push_back(pair.first);
     }
 
     if(srcs.empty()){
@@ -521,7 +534,7 @@ void Sniffer::render_buffers() {
     ImGui::Separator();
 
     ImGui::Text("Buffer");
-    Buffer* buf = _buffs[std::stoi(srcs[_sel_buf_src])];
+    Buffer* buf = _buffs[srcs[_sel_buf_src]];
     uint32_t size = buf->size();
     uint32_t addr = 0;
     char str[128];
@@ -973,24 +986,64 @@ void Sniffer::render_dev() {
     ImGui::SetNextWindowPos(ImVec2(0, textHeight), ImGuiCond_Always);
     ImGui::Begin("Device List", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
 
-    glob_t glob_result;
-    glob("/dev/ttyUSB*", GLOB_TILDE, NULL, &glob_result);
-    for(unsigned int i = 0; i < glob_result.gl_pathc; ++i){
-        render_dev_sel(glob_result.gl_pathv[i]);
-    }
-    globfree(&glob_result);
+    ImGui::BeginChild("ChildR", ImVec2(0, _renderer->getHeight() - 1.65 * textHeight), true);
+    if (ImGui::BeginTable("Devices Table", 1, ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings)){
+        std::vector<std::string> devs;
 
-    glob("/dev/serial*", GLOB_TILDE, NULL, &glob_result);
-    for(unsigned int i = 0; i < glob_result.gl_pathc; ++i){
-        render_dev_sel(glob_result.gl_pathv[i]);
-    }
-    globfree(&glob_result);
+        glob_t glob_result;
+        glob("/dev/ttyUSB*", GLOB_TILDE, NULL, &glob_result);
+        for(unsigned int i = 0; i < glob_result.gl_pathc; ++i){
+            devs.push_back(std::string(glob_result.gl_pathv[i]));
+        }
+        globfree(&glob_result);
 
-    glob("/dev/UART*", GLOB_TILDE, NULL, &glob_result);
-    for(unsigned int i = 0; i < glob_result.gl_pathc; ++i){
-        render_dev_sel(glob_result.gl_pathv[i]);
+        glob("/dev/serial*", GLOB_TILDE, NULL, &glob_result);
+        for(unsigned int i = 0; i < glob_result.gl_pathc; ++i){
+            devs.push_back(std::string(glob_result.gl_pathv[i]));
+        }
+        globfree(&glob_result);
+
+        glob("/dev/UART*", GLOB_TILDE, NULL, &glob_result);
+        for(unsigned int i = 0; i < glob_result.gl_pathc; ++i){
+            devs.push_back(std::string(glob_result.gl_pathv[i]));
+        }
+        globfree(&glob_result);
+
+        for(const auto& pair : _devs)
+            pair.second->exists = false;
+
+        for (auto path : devs) {
+            if(_devs.count(path) == 0){
+                _devs[path] = new DeviceInfo(path);
+            }
+            _devs[path]->exists = true;
+        }
+
+        for(const auto& pair : _devs){
+            DeviceInfo* dev = pair.second;
+            if(!dev->exists){
+                if(dev->sIf){
+                    dev->close();
+                }
+            }
+            else{
+                render_dev_sel(dev);
+            }
+        }
+
+        ImGui::EndTable();
     }
-    globfree(&glob_result);
+    ImGui::EndChild();
+
+
+    ImGui::SetCursorPosX(windowWidth * 0.33f);
+    ImGui::PushStyleVar(ImGuiStyleVar_SelectableTextAlign, ImVec2(0.5f, 0.5f));
+    if(ImGui::Button("Start Monitoring", ImVec2(windowWidth * .33f, .4f * textHeight))){
+        _dev_sel = false;
+        load_profiles();
+        reset_start_timestamp();
+    }
+    ImGui::PopStyleVar();
 
     ImGui::End();
     ImGui::End();
@@ -1001,7 +1054,7 @@ void Sniffer::render_dev() {
     if (ImGui::BeginPopupModal("Error Opening Device", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
 
         std::ostringstream oss;
-        oss << "Error opening " << _sif.getDev() << ": " << strerror(_dev_errno);
+        oss << "Error opening " << _dev_error << ": " << strerror(_dev_errno);
 
         ImGui::Text("%s", oss.str().c_str());
 
@@ -1016,23 +1069,30 @@ void Sniffer::render_dev() {
     }
 }
 
-void Sniffer::render_dev_sel(const char* dev) {
+void Sniffer::render_dev_sel(DeviceInfo* dev) {
+    ImGui::TableNextColumn();
+
     float windowWidth = ImGui::GetWindowWidth();
     ImGui::SetCursorPosX(windowWidth * 0.25f);
     ImGui::PushStyleVar(ImGuiStyleVar_SelectableTextAlign, ImVec2(0.5f, 0.5f));
-    ImGui::Selectable(dev, false, ImGuiSelectableFlags_None, ImVec2(windowWidth * .5f, ImGui::GetTextLineHeight() * 2.f));
-    ImGui::PopStyleVar();
-
-    if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0)){
-        if(_sif.sIFopen(dev) == -1){
-            _dev_errno = errno;
-            printf("Error opening %s: %s\n", dev, strerror(errno));
-            _dev_err_popup = true;
+    if(ImGui::Selectable(dev->path.c_str(), dev->sIf, ImGuiSelectableFlags_None, ImVec2(windowWidth * .5f, ImGui::GetTextLineHeight() * 2.f))){
+        if(dev->sIf){
+            dev->close();
         }
-        printf("%s\n", dev);
-
-        reset_start_timestamp();
+        else{
+            if(dev->open() == -1){
+                _dev_errno = errno;
+                printf("Error opening %s: %s\n", dev->path.c_str(), strerror(errno));
+                _dev_err_popup = true;
+                _dev_error = dev->path;
+            }
+        }
     }
+
+    ImGui::SameLine();
+    ImGui::Checkbox(std::string("Muxed##"+dev->path).c_str(), &dev->muxed);
+
+    ImGui::PopStyleVar();
 }
 
 
