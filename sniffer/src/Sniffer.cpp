@@ -83,6 +83,7 @@ void Sniffer::preRender(Kikan::StdRenderer *renderer, double dt) {
                 if(!_paused)
                     _buffs[src]->addData(data, len);
 
+                free(data);
             }
         }
 
@@ -189,6 +190,10 @@ void Sniffer::render_menubar() {
         if (ImGui::BeginMenuBar()) {
             if (ImGui::BeginMenu("File")) {
                 ImGui::MenuItem("Profiles", nullptr, &_view_profiles);
+                if(ImGui::MenuItem("New", nullptr)){
+                    reset();
+                    _dev_sel = true;
+                }
                 ImGui::EndMenu();
             }
             if (ImGui::BeginMenu("View")) {

@@ -32,7 +32,7 @@ void SerialInterface::sIFclose() {
 uint8_t* SerialInterface::sIFread(uint32_t* src, uint32_t* len) {
 
     for(int i = 0; i < 64; i++){
-        size_t bytes = read(_fd, ((uint8_t*)&_msg) + _by_recv, _by_rd);
+        int bytes = read(_fd, ((uint8_t*)&_msg) + _by_recv, _by_rd);
         if(bytes == 0){
             reset();
             return nullptr;
@@ -81,10 +81,11 @@ uint8_t* SerialInterface::sIFread(uint32_t* src, uint32_t* len) {
 uint8_t *SerialInterface::sIFread(uint32_t *len) {
     uint8_t* data = (uint8_t*)malloc(256);
 
-    size_t bytes = read(_fd, data, 256);
+    int bytes = read(_fd, data, 256);
     if(bytes <= 0){
         return nullptr;
     }
+    *len = bytes;
 
     return data;
 }
