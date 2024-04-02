@@ -1,7 +1,7 @@
 #include "SoftwareSerial.h"
 
 union __attribute__((__packed__)) MsgBody {
-  uint32_t data[8];
+  char data[8];
 } typedef Body;
 
 #define SER_MAGIC 0xDECAFBAD
@@ -32,15 +32,10 @@ struct __attribute__((__packed__)) sifMsg{
 } typedef sifMsg;
 
 
-SoftwareSerial sws1(2, 0);
-SoftwareSerial sws2(3, 0);
-
-int id = 0;
+int id;
 
 void setup() {
-  pinMode(2, INPUT);
-  pinMode(3, INPUT);
-
+  id = 0;
   Serial.begin(115200);
 }
 
@@ -55,7 +50,7 @@ void loop() {
   msg.msg.magic = SER_MAGIC;
   msg.msg.hdr.id = id;
   msg.msg.hdr.len = sizeof(Body);
-  memset(msg.msg.bdy.data, 0xFF, 32);
+  strcpy(msg.msg.bdy.data, "TestData");
 
 
   Serial.write((uint8_t*)&msg, msg.len + 12);
