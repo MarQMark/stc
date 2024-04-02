@@ -88,14 +88,15 @@ void Sniffer::preRender(Kikan::StdRenderer *renderer, double dt) {
         }
 
         for (auto buffer : _buffs) {
-            std::vector<Message*> msgs;
-            buffer.second->parseMsgs(&msgs);
-            for(auto* msg : msgs){
+            std::vector<PacketInfo*> packets;
+            buffer.second->parseMsgs(&packets);
+            for(auto* info : packets){
                 struct timespec spec;
                 clock_gettime(CLOCK_REALTIME, &spec);
                 uint64_t timestamp = ((spec.tv_nsec/ 1000000) + (spec.tv_sec * 1000)) - _start_timestamp;
-
-                _packets.push_back(new PacketInfo(src, timestamp, msg));
+                info->timestamp = timestamp;
+                info->src = buffer.first;
+                _packets.push_back(info);
             }
         }
         render_dockspace();
@@ -178,8 +179,8 @@ void Sniffer::render_main(){
         render_buffers();
     render_profiles();
 
-    //bool show_demo_window = true;
-    //ImGui::ShowDemoWindow(&show_demo_window);
+    bool show_demo_window = true;
+    ImGui::ShowDemoWindow(&show_demo_window);
 }
 
 void Sniffer::render_menubar() {
@@ -384,6 +385,8 @@ void Sniffer::render_details() {
     }
     Message* msg = _packets[_sel_msg]->msg;
 
+    ImGui::Text("In Buffer %s at 0x%X(%d)\n", _packets[_sel_msg]->src.c_str(), _packets[_sel_msg]->bufAddr, _packets[_sel_msg]->bufAddr);
+
     char item[64];
     sprintf(item, "Magic Number: 0x%04X", msg->magic);
     if (ImGui::TreeNode(item)) {
@@ -486,7 +489,7 @@ void Sniffer::render_details() {
                             ImGui::Text("%s (%s): %s", types[i]->getName().c_str(), ProfileType::typeStr[types[i]->getType()], ss.str().c_str());
                         }
                     }
-                    off += types[i]->getType();
+                    off += types[i]->getLen();
                 }
             }
             else{
@@ -538,8 +541,8 @@ void Sniffer::render_buffers() {
 
     ImGui::Separator();
 
-    ImGui::Text("Buffer");
     Buffer* buf = _buffs[srcs[_sel_buf_src]];
+    ImGui::Text("Buffer (0x%X (%d))", buf->size(), buf->size());
     uint32_t size = buf->size();
     uint32_t addr = 0;
     char str[128];
@@ -567,7 +570,8 @@ void Sniffer::reset() {
     _buffs.clear();
 
     for (auto* packet : _packets) {
-        delete packet->msg->bdy.data;
+        if(packet->msg)
+            delete packet->msg->bdy.data;
         delete packet->msg;
         delete packet;
     }

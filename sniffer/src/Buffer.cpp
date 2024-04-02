@@ -40,12 +40,18 @@ void Buffer::addData(uint8_t *data, uint32_t size) {
 
 
 int8_t Buffer::getData(uint32_t addr, uint8_t* data, uint32_t size){
+    if(size == 0)
+        return 1;
+
+    if(_size <= addr)
+        return -1;
+
     // get buffer
     uint32_t bufAddr = 0;
     MBuf* mBuf = nullptr;
     for(auto* tmp : _buffers) {
         mBuf = tmp;
-        if(bufAddr + mBuf->ptr > addr){
+        if(bufAddr + mBuf->ptr >= addr){
             break;
         }
 
@@ -53,11 +59,11 @@ int8_t Buffer::getData(uint32_t addr, uint8_t* data, uint32_t size){
     }
 
     // Address higher than size of buffer
-    if(bufAddr + mBuf->ptr < addr){
-        // TODO: optimize with _size, but I am too tired to tell if it actually works
-        //printf("Addr(0x%08X) not in Buffer(0x%08X)\n", addr, bufAddr + mBuf->ptr);
-        return -1;
-    }
+    //if(bufAddr + mBuf->ptr <= addr){
+    //    // TODO: optimize with _size, but I am too tired to tell if it actually works
+    //    //printf("Addr(0x%08X) not in Buffer(0x%08X)\n", addr, bufAddr + mBuf->ptr);
+    //    return -1;
+    //}
 
     if(mBuf->ptr >= size){
         memcpy(data, mBuf->data + (addr - bufAddr), size);
@@ -80,14 +86,15 @@ int8_t Buffer::getData(uint32_t addr, uint8_t* data, uint32_t size){
     return 1;
 }
 
-void Buffer::parseMsgs(std::vector<Message*> *msgs) {
+void Buffer::parseMsgs(std::vector<PacketInfo*> *packets) {
     uint32_t parsing = 1;
     uint8_t sync = 0;
 
     bool parseHdr = true;
     Message* msg = (Message*)malloc(sizeof(Message));//new Message();
+    uint32_t bufAddr = 0;
 
-    for(uint32_t i = 0;; i++){
+    for(uint32_t i = 0;;){
 
         //uint8_t* data = (uint8_t*)malloc(parsing);
         uint8_t data[parsing];
@@ -103,11 +110,13 @@ void Buffer::parseMsgs(std::vector<Message*> *msgs) {
                 if(sync == 4){
                     parsing = sizeof(Header);
                     msg->magic = SER_MAGIC;
+                    bufAddr = _last_msg_addr + i - 3;
                 }
             }
             else{
                 sync = 0;
             }
+            i++;
         }
         else {
 
@@ -121,20 +130,28 @@ void Buffer::parseMsgs(std::vector<Message*> *msgs) {
                 parseHdr = false;
             }
             else{
-                msg->bdy.data = (uint8_t*) malloc(msg->hdr.len);
-                memcpy(msg->bdy.data, data, msg->hdr.len);
-                i += msg->hdr.len;
+                if(msg->hdr.len > 0){
+                    msg->bdy.data = (uint8_t*) malloc(msg->hdr.len);
+                    memcpy(msg->bdy.data, data, msg->hdr.len);
+                    i += msg->hdr.len;
+                }
+                else{
+                    msg->bdy.data = nullptr;
+                }
 
-                // Add message
-                msgs->push_back(msg);
-                _last_msg_addr += i;
+                // Add new PackageInfo
+                packets->push_back(new PacketInfo(msg, bufAddr));
+                //printf("Msg Addr: %d(0x%X), Buffer Size: %d\n", bufAddr, bufAddr, _buffers[0]->ptr);
+                _last_msg_addr += (i - 1);
 
                 // Reset
                 // Add new tmp message in case no new message is contained in buffer, since msg will always get freed
                 msg = (Message*)malloc(sizeof(Message));
+                memset(msg, 0, sizeof(Message));
                 sync = 0;
                 parsing = 1;
                 parseHdr = true;
+                i = 0;
             }
         }
 

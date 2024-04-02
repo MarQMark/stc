@@ -3,15 +3,31 @@
 
 #include <vector>
 #include <cstdint>
+#include <string>
 
 #define MESSAGE_BODY
 union __attribute__((__packed__)) MsgBody {
-    uint8_t* data;
+    uint8_t* data = nullptr;
 } typedef Body;
 
 #include "message.h"
 
 #define BUFFER_SIZE 0x4000
+
+
+struct PacketInfo{
+    PacketInfo() = default;
+    PacketInfo(Message* msg, uint32_t bufAddr){
+        this->bufAddr = bufAddr;
+        this->msg = msg;
+    };
+
+    uint32_t bufAddr;
+    std::string src;
+    uint64_t timestamp;
+    Message* msg;
+};
+
 
 class Buffer {
 public:
@@ -44,7 +60,7 @@ public:
      */
     int8_t getData(uint32_t addr, uint8_t* data, uint32_t size);
 
-    void parseMsgs(std::vector<Message*> *msgs);
+    void parseMsgs(std::vector<PacketInfo*> *);
 
     uint32_t size() const;
 private:

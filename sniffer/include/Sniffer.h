@@ -9,19 +9,6 @@
 #include "SerialInterface.h"
 #include "Profile.h"
 
-struct PacketInfo{
-    PacketInfo() = default;
-    PacketInfo(std::string src, uint64_t timestamp, Message* msg){
-        this->src = std::move(src);
-        this->timestamp = timestamp;
-        this->msg = msg;
-    };
-
-    std::string src;
-    uint64_t timestamp;
-    Message* msg;
-};
-
 struct DeviceInfo{
     explicit DeviceInfo(const std::string& path) {
         name = path.substr(5, path.size() - 5);
