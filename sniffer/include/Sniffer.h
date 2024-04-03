@@ -101,6 +101,8 @@ private:
     uint32_t _sel_profile_type = 0;
     std::map<std::string, Profile*> _profiles;
 
+    uint32_t _buf_hover_start = 0;
+    uint32_t _buf_hover_end = 0;
 
     bool _dev_err_popup = false;
     int _dev_errno = 0;

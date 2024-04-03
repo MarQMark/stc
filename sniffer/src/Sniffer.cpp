@@ -342,6 +342,90 @@ void format_hex(char* str, uint32_t addr, uint8_t *data, uint32_t len){
     free(tmp);
 }
 
+void render_hex_highlight(const uint32_t start, const uint32_t end, const ImU32 color){
+    const ImVec2 p = ImGui::GetCursorScreenPos();
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+    ImVec2 ws = ImGui::CalcTextSize(" ");
+
+    float x = p.x + ImGui::CalcTextSize("0000 | ").x;
+    float y = p.y;
+
+    float markLen = 0;
+    float offset = 0;
+    float hexLen = ImGui::CalcTextSize("00").x;
+
+    // First hex section
+    if(start < 8){
+        markLen = (end - start) * (hexLen + ws.x) - ws.x;
+        if(end > 8)
+            markLen -= (end - 8) * (hexLen + ws.x);
+
+        if(start != 0)
+            offset = start * (hexLen + ws.x);
+        else
+            offset = 0;
+
+        draw_list->AddRectFilled(
+                ImVec2(x + offset, y),
+                ImVec2(x + offset + markLen, y + ws.y),
+                color);
+    }
+
+    x += (hexLen + ws.x) * 8 + ws.x;
+    // Second hex section
+    if(end > 8){
+        if(start > 8)
+            offset = (start - 8) * (hexLen + ws.x);
+        else
+            offset = 0;
+
+        markLen = (end - start) * (hexLen + ws.x) - ws.x;
+        if(start < 8)
+            markLen -= (8 - start) * (hexLen + ws.x);
+
+        draw_list->AddRectFilled(
+                ImVec2(x + offset, y),
+                ImVec2(x + offset + markLen, y + ws.y),
+                color);
+    }
+
+    x = p.x + ImGui::CalcTextSize("0000 | 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |").x;
+    // First ASCII section
+    if(start < 8){
+        markLen = (end - start) * ws.x;
+        if(end > 8)
+            markLen -= (end - 8) * ws.x;
+
+        if(start != 0)
+            offset = start * ws.x;
+        else
+            offset = 0;
+
+        draw_list->AddRectFilled(
+                ImVec2(x + offset, y),
+                ImVec2(x + offset + markLen, y + ws.y),
+                color);
+    }
+
+    x += 9 * ws.x;
+    // Second ASCII section
+    if(end > 8){
+        if(start > 8)
+            offset = (start - 8) * ws.x;
+        else
+            offset = 0;
+
+        markLen = (end - start) * ws.x;
+        if(start < 8)
+            markLen -= (8 - start) * ws.x;
+
+        draw_list->AddRectFilled(
+                ImVec2(x + offset, y),
+                ImVec2(x + offset + markLen, y + ws.y),
+                color);
+    }
+}
+
 void Sniffer::render_hex() {
     ImGui::Begin("Hex View");
 
@@ -352,32 +436,61 @@ void Sniffer::render_hex() {
 
     Message* msg = _packets[_sel_msg]->msg;
     uint32_t addr = 0;
+    uint32_t addrReal = 0;
     char str[128];
 
+    uint32_t buf_hover_start = _buf_hover_start - _packets[_sel_msg]->bufAddr;
+    uint32_t buf_hover_end = _buf_hover_end - _packets[_sel_msg]->bufAddr;
+
     ImGui::Text("Magic Number");
+    if(buf_hover_start != buf_hover_end && buf_hover_start <= (addrReal + 0x10) && buf_hover_end >= addrReal && buf_hover_start < 4) {
+        uint32_t bytesOff = addrReal < buf_hover_start ? (buf_hover_start - addrReal) : 0;
+        uint32_t bytesInRow = std::min(buf_hover_end - addrReal, 16U) - bytesOff;
+
+        render_hex_highlight(bytesOff, bytesOff + bytesInRow, ImColor(56 / 255.0f, 123 / 255.0f, 203 / 255.0f, 1.0f));
+    }
     format_hex(str, addr, (uint8_t*)&msg->magic, 4);
     ImGui::Text("%s", str);
     ImGui::NewLine();
     addr += 0x10;
+    addrReal += 4;
 
     ImGui::Text("Header");
+    if(buf_hover_start != buf_hover_end && buf_hover_start <= (addrReal + 0x10) && buf_hover_end >= addrReal && buf_hover_start >= 4 && buf_hover_start < sizeof(Header) + 4) {
+        uint32_t bytesOff = addrReal < buf_hover_start ? (buf_hover_start - addrReal) : 0;
+        uint32_t bytesInRow = std::min(buf_hover_end - addrReal, 16U) - bytesOff;
+
+        render_hex_highlight(bytesOff, bytesOff + bytesInRow, ImColor(56 / 255.0f, 123 / 255.0f, 203 / 255.0f, 1.0f));
+    }
     format_hex(str, addr, (uint8_t*)&msg->hdr, sizeof(Header));
     ImGui::Text("%s", str);
     ImGui::NewLine();
     addr += 0x10;
+    addrReal += sizeof(Header);
 
     ImGui::Text("Body");
     for (int i = 0; i < msg->hdr.len; i += 16) {
+        if(buf_hover_start != buf_hover_end && buf_hover_start <= (addrReal + 0x10) && buf_hover_end >= addrReal && buf_hover_start >= sizeof(Header) + 4) {
+            uint32_t bytesOff = addrReal < buf_hover_start ? (buf_hover_start - addrReal) : 0;
+            uint32_t bytesInRow = std::min(buf_hover_end - addrReal, 16U) - bytesOff;
+
+            render_hex_highlight(bytesOff, bytesOff + bytesInRow, ImColor(56 / 255.0f, 123 / 255.0f, 203 / 255.0f, 1.0f));
+        }
         format_hex(str, addr, msg->bdy.data + i, std::min(16, msg->hdr.len - i));
         ImGui::Text("%s", str);
         addr += 0x10;
+        addrReal += 0x10;
     }
 
     ImGui::End();
 }
 
+#define HOVER_BOUNDS(off, len) if(ImGui::IsItemHovered()){ _buf_hover_start = _packets[_sel_msg]->bufAddr + off; _buf_hover_end = _buf_hover_start + len; }
 void Sniffer::render_details() {
     ImGui::Begin("Details");
+
+    _buf_hover_start = 0;
+    _buf_hover_end = 0;
 
     if(_packets.empty()){
         ImGui::End();
@@ -390,44 +503,85 @@ void Sniffer::render_details() {
     char item[64];
     sprintf(item, "Magic Number: 0x%04X", msg->magic);
     if (ImGui::TreeNode(item)) {
+        HOVER_BOUNDS(0, 4);
+
         ImGui::Text("\t0x%04X (%d)", msg->magic, msg->magic);
+        HOVER_BOUNDS(0, 4);
         ImGui::TreePop();
     }
+    else{
+        HOVER_BOUNDS(0, 4);
+    }
+
     if (ImGui::TreeNode("Header")) {
+        HOVER_BOUNDS(4, sizeof(Header));
+
         sprintf(item, "ID: %d###id", msg->hdr.id);
         if (ImGui::TreeNode(item)) {
+            HOVER_BOUNDS(4, 2);
             ImGui::Text("\t0x%02X (%d)", msg->hdr.id, msg->hdr.id);
+            HOVER_BOUNDS(4, 2);
             ImGui::TreePop();
+        }
+        else{
+            HOVER_BOUNDS(4, 2);
         }
 
         sprintf(item, "Length: %d###len", msg->hdr.len);
         if (ImGui::TreeNode(item)) {
+            HOVER_BOUNDS(6, 2);
             ImGui::Text("\t0x%02X (%d)", msg->hdr.len, msg->hdr.len);
+            HOVER_BOUNDS(6, 2);
             ImGui::TreePop();
+        }
+        else{
+            HOVER_BOUNDS(6, 2);
         }
 
         sprintf(item, "TCN: %u###tcn", msg->hdr.tcn);
         if (ImGui::TreeNode(item)) {
+            HOVER_BOUNDS(8, 4);
             ImGui::Text("\t0x%04X (%u)", msg->hdr.tcn, msg->hdr.tcn);
+            HOVER_BOUNDS(8, 4);
             ImGui::TreePop();
+        }
+        else{
+            HOVER_BOUNDS(8, 4);
         }
 
         sprintf(item, "TCF: %d###tcf", msg->hdr.tcf);
         if (ImGui::TreeNode(item)) {
-            if(msg->hdr.tcf & TCF_SYN)
+            HOVER_BOUNDS(12, 1);
+            if(msg->hdr.tcf & TCF_SYN){
                 ImGui::Text("\t.......1 SYN");
-            else if(msg->hdr.tcf & TCF_ACK)
+                HOVER_BOUNDS(12, 1);
+            }
+            else if(msg->hdr.tcf & TCF_ACK){
                 ImGui::Text("\t......1. ACK");
-            if(msg->hdr.tcf & TCF_RST)
+                HOVER_BOUNDS(12, 1);
+            }
+            if(msg->hdr.tcf & TCF_RST){
                 ImGui::Text("\t.....1.. RST");
+                HOVER_BOUNDS(12, 1);
+            }
 
             ImGui::Text("\t0x%01X (%d)", msg->hdr.tcf, msg->hdr.tcf);
+            HOVER_BOUNDS(12, 1);
             ImGui::TreePop();
+        }
+        else{
+            HOVER_BOUNDS(12, 1);
         }
 
         ImGui::TreePop();
     }
+    else{
+        HOVER_BOUNDS(4, sizeof(Header));
+    }
+
+
     if (ImGui::TreeNode("Body")) {
+        HOVER_BOUNDS(4 + sizeof(Header), msg->hdr.len);
 
         if(_profiles.count(_profile_str) != 0){
             if(_profiles[_profile_str]->types.count(msg->hdr.id) != 0){
@@ -489,19 +643,25 @@ void Sniffer::render_details() {
                             ImGui::Text("%s (%s): %s", types[i]->getName().c_str(), ProfileType::typeStr[types[i]->getType()], ss.str().c_str());
                         }
                     }
+                    HOVER_BOUNDS(4 + sizeof(Header) + off, types[i]->getLen());
                     off += types[i]->getLen();
                 }
             }
             else{
                 ImGui::Text("Id(%d) not in profile %s", msg->hdr.id, _profile_str.c_str());
+                HOVER_BOUNDS(4 + sizeof(Header), msg->hdr.len);
             }
         }
         else{
             ImGui::Text("No Profile selected");
+            HOVER_BOUNDS(4 + sizeof(Header), msg->hdr.len);
         }
 
 
         ImGui::TreePop();
+    }
+    else{
+        HOVER_BOUNDS(4 + sizeof(Header), msg->hdr.len);
     }
 
     ImGui::End();
@@ -551,6 +711,28 @@ void Sniffer::render_buffers() {
 
     for (int i = 0; i < size; i += 16) {
         format_hex(str, addr, data + i, std::min(16U, size - i));
+
+        if(!_packets.empty()){
+            PacketInfo* packet = _packets[_sel_msg];
+            uint32_t msgLen = MSG_LEN(packet->msg);
+
+            if(packet->src == srcs[_sel_buf_src] && packet->bufAddr <= (addr + 0x10) && packet->bufAddr + msgLen >= addr){
+
+                uint32_t bytesOff = addr < packet->bufAddr ? (packet->bufAddr - addr) : 0;
+                uint32_t bytesInRow = std::min((packet->bufAddr + msgLen) - addr, 16U) - bytesOff;
+
+                render_hex_highlight(bytesOff, bytesOff + bytesInRow, ImColor(31/255.0f, 57/255.0f, 88/255.0f, 1.0f));
+
+                if(_buf_hover_start != _buf_hover_end && _buf_hover_start <= (addr + 0x10) && _buf_hover_end >= addr) {
+                    bytesOff = addr < _buf_hover_start ? (_buf_hover_start - addr) : 0;
+                    bytesInRow = std::min(_buf_hover_end - addr, 16U) - bytesOff;
+
+                    render_hex_highlight(bytesOff, bytesOff + bytesInRow, ImColor(56 / 255.0f, 123 / 255.0f, 203 / 255.0f, 1.0f));
+                }
+            }
+        }
+
+
         ImGui::Text("%s", str);
         addr += 0x10;
     }
@@ -1001,6 +1183,12 @@ void Sniffer::render_dev() {
 
         glob_t glob_result;
         glob("/dev/ttyUSB*", GLOB_TILDE, NULL, &glob_result);
+        for(unsigned int i = 0; i < glob_result.gl_pathc; ++i){
+            devs.push_back(std::string(glob_result.gl_pathv[i]));
+        }
+        globfree(&glob_result);
+
+        glob("/dev/ttyACM*", GLOB_TILDE, NULL, &glob_result);
         for(unsigned int i = 0; i < glob_result.gl_pathc; ++i){
             devs.push_back(std::string(glob_result.gl_pathv[i]));
         }

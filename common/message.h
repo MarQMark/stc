@@ -26,4 +26,6 @@ struct __attribute__((__packed__)) Message {
     Body bdy;
 } typedef Message;
 
+#define MSG_LEN(msg) 4 + sizeof(Header) + msg->hdr.len
+
 #endif //STC_MESSAGE_H
