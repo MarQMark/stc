@@ -86,6 +86,17 @@ int8_t Buffer::getData(uint32_t addr, uint8_t* data, uint32_t size){
     return 1;
 }
 
+uint8_t calc_crc(Message* msg, const uint8_t* body){
+    uint8_t crc = 0;
+    for (int i = 0; i < sizeof(Header) + MAGIC_LEN - 1; i++)
+        crc ^= ((uint8_t*)msg)[i];
+
+    for (int i = 0; i < msg->hdr.len; i++)
+        crc ^= body[i];
+
+    return crc;
+}
+
 void Buffer::parseMsgs(std::vector<PacketInfo*> *packets) {
     uint32_t parsing = 1;
     uint8_t sync = 0;
@@ -140,7 +151,10 @@ void Buffer::parseMsgs(std::vector<PacketInfo*> *packets) {
                 }
 
                 // Add new PackageInfo
-                packets->push_back(new PacketInfo(msg, bufAddr));
+                PacketInfo* packetInfo = new PacketInfo(msg, bufAddr);
+                printf("%d | %d\n", msg->hdr.crc, calc_crc(msg, msg->bdy.data));
+                packetInfo->validCRC = (msg->hdr.crc == calc_crc(msg, msg->bdy.data));
+                packets->push_back(packetInfo);
                 //printf("Msg Addr: %d(0x%X), Buffer Size: %d\n", bufAddr, bufAddr, _buffers[0]->ptr);
                 _last_msg_addr += (i - 1);
 

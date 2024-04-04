@@ -13,11 +13,15 @@ union __attribute__((__packed__)) MsgBody {
 #define TCF_ACK 0x2
 #define TCF_RST 0x4
 
+#define MSG_LEN(msg) 4 + sizeof(Header) + msg->hdr.len
+#define MAGIC_LEN 4
+
 struct __attribute__((__packed__)) Header {
     uint16_t id;
     uint16_t len;
     uint32_t tcn; // Transmission Control Number
     uint8_t tcf;  // 1 : SYC; 2 : ACK
+    uint8_t crc;
 } typedef Header;
 
 struct __attribute__((__packed__)) Message {
@@ -25,7 +29,5 @@ struct __attribute__((__packed__)) Message {
     Header hdr;
     Body bdy;
 } typedef Message;
-
-#define MSG_LEN(msg) 4 + sizeof(Header) + msg->hdr.len
 
 #endif //STC_MESSAGE_H

@@ -47,6 +47,8 @@ struct _Serial {
 #endif
 }  typedef Serial;
 
+uint8_t calc_crc(Message* msg);
+
 int serial_init(Serial* context);
 void serial_reset(Serial* context);
 void serial_reset_hard(Serial* context);

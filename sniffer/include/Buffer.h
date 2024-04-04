@@ -26,6 +26,7 @@ struct PacketInfo{
     std::string src;
     uint64_t timestamp;
     Message* msg;
+    bool validCRC;
 };
 
 

@@ -25,6 +25,17 @@ int serial_init(Serial* serial){
     return 0;
 }
 
+uint8_t calc_crc(Message* msg){
+    uint8_t crc = 0;
+    for(int i = 0; i < sizeof(Header) + MAGIC_LEN - 1; i++)
+        crc ^= ((uint8_t*)msg)[i];
+
+    for(int i = 0; i < msg->hdr.len; i++)
+        crc ^= ((uint8_t*)msg)[i + sizeof(Message) + MAGIC_LEN];
+
+    return crc;
+}
+
 void serial_reset(Serial* serial) {
     serial->sync = 0;
     serial->bytes_to_read = 1;

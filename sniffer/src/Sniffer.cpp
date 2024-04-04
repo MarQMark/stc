@@ -285,6 +285,9 @@ void Sniffer::render_msgs() {
         auto* packetInfo = _packets[i];
         auto* msg = packetInfo->msg;
 
+        if(!packetInfo->validCRC)
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.4f, 0.4f, 1.0f));
+
         bool isSelected = ImGui::Selectable((std::to_string(i) + "##Row" + std::to_string(i)).c_str(), _sel_msg == i);
         ImGui::SameLine(50);
         ImGui::Selectable((packetInfo->src + "##Row" + std::to_string(i)).c_str());
@@ -306,6 +309,9 @@ void Sniffer::render_msgs() {
         ss << "##Row" << i;
 
         ImGui::Selectable(ss.str().c_str());
+        if(!packetInfo->validCRC)
+            ImGui::PopStyleColor();
+
 
         if (isSelected) {
             _sel_msg = i;
@@ -503,14 +509,14 @@ void Sniffer::render_details() {
     char item[64];
     sprintf(item, "Magic Number: 0x%04X", msg->magic);
     if (ImGui::TreeNode(item)) {
-        HOVER_BOUNDS(0, 4);
+        HOVER_BOUNDS(0, MAGIC_LEN);
 
         ImGui::Text("\t0x%04X (%d)", msg->magic, msg->magic);
-        HOVER_BOUNDS(0, 4);
+        HOVER_BOUNDS(0, MAGIC_LEN);
         ImGui::TreePop();
     }
     else{
-        HOVER_BOUNDS(0, 4);
+        HOVER_BOUNDS(0, MAGIC_LEN);
     }
 
     if (ImGui::TreeNode("Header")) {
@@ -518,70 +524,70 @@ void Sniffer::render_details() {
 
         sprintf(item, "ID: %d###id", msg->hdr.id);
         if (ImGui::TreeNode(item)) {
-            HOVER_BOUNDS(4, 2);
+            HOVER_BOUNDS(MAGIC_LEN, 2);
             ImGui::Text("\t0x%02X (%d)", msg->hdr.id, msg->hdr.id);
-            HOVER_BOUNDS(4, 2);
+            HOVER_BOUNDS(MAGIC_LEN, 2);
             ImGui::TreePop();
         }
         else{
-            HOVER_BOUNDS(4, 2);
+            HOVER_BOUNDS(MAGIC_LEN, 2);
         }
 
         sprintf(item, "Length: %d###len", msg->hdr.len);
         if (ImGui::TreeNode(item)) {
-            HOVER_BOUNDS(6, 2);
+            HOVER_BOUNDS(MAGIC_LEN + 2, 2);
             ImGui::Text("\t0x%02X (%d)", msg->hdr.len, msg->hdr.len);
-            HOVER_BOUNDS(6, 2);
+            HOVER_BOUNDS(MAGIC_LEN + 2, 2);
             ImGui::TreePop();
         }
         else{
-            HOVER_BOUNDS(6, 2);
+            HOVER_BOUNDS(MAGIC_LEN + 2, 2);
         }
 
         sprintf(item, "TCN: %u###tcn", msg->hdr.tcn);
         if (ImGui::TreeNode(item)) {
-            HOVER_BOUNDS(8, 4);
+            HOVER_BOUNDS(MAGIC_LEN + 4, 4);
             ImGui::Text("\t0x%04X (%u)", msg->hdr.tcn, msg->hdr.tcn);
-            HOVER_BOUNDS(8, 4);
+            HOVER_BOUNDS(MAGIC_LEN + 4, 4);
             ImGui::TreePop();
         }
         else{
-            HOVER_BOUNDS(8, 4);
+            HOVER_BOUNDS(MAGIC_LEN + 4, 4);
         }
 
         sprintf(item, "TCF: %d###tcf", msg->hdr.tcf);
         if (ImGui::TreeNode(item)) {
-            HOVER_BOUNDS(12, 1);
+            HOVER_BOUNDS(MAGIC_LEN + 8, 1);
             if(msg->hdr.tcf & TCF_SYN){
                 ImGui::Text("\t.......1 SYN");
-                HOVER_BOUNDS(12, 1);
+                HOVER_BOUNDS(MAGIC_LEN + 8, 1);
             }
             else if(msg->hdr.tcf & TCF_ACK){
                 ImGui::Text("\t......1. ACK");
-                HOVER_BOUNDS(12, 1);
+                HOVER_BOUNDS(MAGIC_LEN + 8, 1);
             }
             if(msg->hdr.tcf & TCF_RST){
                 ImGui::Text("\t.....1.. RST");
-                HOVER_BOUNDS(12, 1);
+                HOVER_BOUNDS(MAGIC_LEN + 8, 1);
             }
 
             ImGui::Text("\t0x%01X (%d)", msg->hdr.tcf, msg->hdr.tcf);
-            HOVER_BOUNDS(12, 1);
+            HOVER_BOUNDS(MAGIC_LEN + 8, 1);
             ImGui::TreePop();
         }
         else{
-            HOVER_BOUNDS(12, 1);
+            HOVER_BOUNDS(MAGIC_LEN + 8, 1);
         }
 
         ImGui::TreePop();
     }
     else{
-        HOVER_BOUNDS(4, sizeof(Header));
+        HOVER_BOUNDS(MAGIC_LEN, sizeof(Header));
     }
 
 
     if (ImGui::TreeNode("Body")) {
-        HOVER_BOUNDS(4 + sizeof(Header), msg->hdr.len);
+        HOVER_BOUNDS(MAGIC_LEN + sizeof(Header), msg->hdr.len);
 
         if(_profiles.count(_profile_str) != 0){
             if(_profiles[_profile_str]->types.count(msg->hdr.id) != 0){
@@ -643,25 +649,25 @@ void Sniffer::render_details() {
                             ImGui::Text("%s (%s): %s", types[i]->getName().c_str(), ProfileType::typeStr[types[i]->getType()], ss.str().c_str());
                         }
                     }
-                    HOVER_BOUNDS(4 + sizeof(Header) + off, types[i]->getLen());
+                    HOVER_BOUNDS(MAGIC_LEN + sizeof(Header) + off, types[i]->getLen());
                     off += types[i]->getLen();
                 }
             }
             else{
                 ImGui::Text("Id(%d) not in profile %s", msg->hdr.id, _profile_str.c_str());
-                HOVER_BOUNDS(4 + sizeof(Header), msg->hdr.len);
+                HOVER_BOUNDS(MAGIC_LEN + sizeof(Header), msg->hdr.len);
             }
         }
         else{
             ImGui::Text("No Profile selected");
-            HOVER_BOUNDS(4 + sizeof(Header), msg->hdr.len);
+            HOVER_BOUNDS(MAGIC_LEN + sizeof(Header), msg->hdr.len);
         }
 
 
         ImGui::TreePop();
     }
     else{
-        HOVER_BOUNDS(4 + sizeof(Header), msg->hdr.len);
+        HOVER_BOUNDS(MAGIC_LEN + sizeof(Header), msg->hdr.len);
     }
 
     ImGui::End();
