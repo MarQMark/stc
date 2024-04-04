@@ -32,13 +32,25 @@ struct __attribute__((__packed__)) sifMsg{
   Message msg;
 } typedef sifMsg;
 
-uint8_t calc_crc(Message* msg){
+/*uint8_t calc_crc(Message* msg){
     uint8_t crc = 0;
     for(int i = 0; i < sizeof(Header) + 4 - 1; i++)
         crc ^= ((uint8_t*)msg)[i];
 
     for(int i = 0; i < msg->hdr.len; i++)
         crc ^= ((uint8_t*)msg)[i + sizeof(Header) + 4];
+
+    return crc;
+}*/
+
+// Why?
+uint8_t calc_crc(Message msg){
+    uint8_t crc = 0;
+    for(int i = 0; i < sizeof(Header) + 4 - 1; i++)
+        crc ^= ((uint8_t*)&msg)[i];
+
+    for(int i = 0; i < msg.hdr.len; i++)
+        crc ^= ((uint8_t*)&msg)[i + sizeof(Header) + 4];
 
     return crc;
 }
@@ -64,7 +76,7 @@ void loop() {
   msg.msg.hdr.len = sizeof(Body);
   strcpy(msg.msg.bdy.data, "TestData");
 
-  uint8_t crc = calc_crc(&msg.msg);
+  uint8_t crc = calc_crc(msg.msg);
   msg.msg.hdr.crc = crc;
 
   Serial.write((uint8_t*)&msg, msg.len + 12);

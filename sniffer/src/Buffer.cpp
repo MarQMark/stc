@@ -152,7 +152,6 @@ void Buffer::parseMsgs(std::vector<PacketInfo*> *packets) {
 
                 // Add new PackageInfo
                 PacketInfo* packetInfo = new PacketInfo(msg, bufAddr);
-                printf("%d | %d\n", msg->hdr.crc, calc_crc(msg, msg->bdy.data));
                 packetInfo->validCRC = (msg->hdr.crc == calc_crc(msg, msg->bdy.data));
                 packets->push_back(packetInfo);
                 //printf("Msg Addr: %d(0x%X), Buffer Size: %d\n", bufAddr, bufAddr, _buffers[0]->ptr);

@@ -579,6 +579,17 @@ void Sniffer::render_details() {
             HOVER_BOUNDS(MAGIC_LEN + 8, 1);
         }
 
+        sprintf(item, "CRC: 0x%02X###crc", msg->hdr.crc);
+        if (ImGui::TreeNode(item)) {
+            HOVER_BOUNDS(MAGIC_LEN + sizeof(Header) - 1, 1);
+            ImGui::Text("\t0x%02X (%d)", msg->hdr.crc, msg->hdr.crc);
+            HOVER_BOUNDS(MAGIC_LEN + sizeof(Header) - 1, 1);
+            ImGui::TreePop();
+        }
+        else{
+            HOVER_BOUNDS(MAGIC_LEN + sizeof(Header) - 1, 1);
+        }
+
         ImGui::TreePop();
     }
     else{
