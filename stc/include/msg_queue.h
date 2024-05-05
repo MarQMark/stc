@@ -4,8 +4,8 @@
 #include "../../common/message.h"
 
 struct MsgQueuePart{
-    struct MsgQueuePart* tail;
-    struct MsgQueuePart* head;
+    //struct MsgQueuePart* tail;
+    struct MsgQueuePart* next;
     Message* msg;
 } typedef MsgQueuePart;
 
@@ -23,6 +23,7 @@ Message* msg_get_field(uint8_t field, uint32_t speed, uint8_t magnet);
 Message* msg_get_mov(uint8_t dir, uint32_t steps, uint32_t speed, uint8_t magnet);
 Message* msg_get_btn(uint8_t id, uint32_t state);
 
+MsgQueue* msg_queue_create();
 void msg_queue_enqueue(MsgQueue* msgQueue, Message* msg);
 Message* msg_queue_dequeue(MsgQueue* msgQueue);
 Message* msg_queue_tail(MsgQueue* msgQueue);

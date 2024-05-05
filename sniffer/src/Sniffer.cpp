@@ -179,8 +179,8 @@ void Sniffer::render_main(){
         render_buffers();
     render_profiles();
 
-    bool show_demo_window = true;
-    ImGui::ShowDemoWindow(&show_demo_window);
+    //bool show_demo_window = true;
+    //ImGui::ShowDemoWindow(&show_demo_window);
 }
 
 void Sniffer::render_menubar() {

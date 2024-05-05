@@ -36,7 +36,7 @@ struct _Serial {
 
     uint32_t tcn_nxt; // 1 = TCN already received (duplicate message); 0 = new message
 
-    MsgQueue tx_queue;
+    MsgQueue* tx_queue;
     int64_t resend_timeout;
 
     int64_t last_time;
@@ -47,9 +47,10 @@ struct _Serial {
 #endif
 }  typedef Serial;
 
-uint8_t calc_crc(Message* msg);
+uint8_t serial_calc_crc(Message* msg);
 
 int serial_init(Serial* context);
+void serial_clean(Serial* serial);
 void serial_reset(Serial* context);
 void serial_reset_hard(Serial* context);
 void serial_update(Serial* context);

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="Statistic">
+    <option name="fileTypesIncluded" value="cpp;h;c" />
+    <option name="separateTabsFileTypes" value="cpp;h;c" />
+    <option name="excludedDirectories">
+      <list>
+        <option value="$PROJECT_DIR$/sniffer/external" />
+        <option value="$PROJECT_DIR$/sniffer/include/IconFontAwesome" />
+        <option value="$PROJECT_DIR$/sniffer/src/imgui" />
+      </list>
+    </option>
+  </component>
+</project>
