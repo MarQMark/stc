@@ -80,17 +80,17 @@ void serial_reset_hard(Serial* serial){
 
 
 void read_sync(Serial* serial){
-    uint32_t mask = 0xFFFFFFFF >> ((3 - context->serial.sync) * 8);
-    if((context->serial.msg.magic & mask) == (SER_MAGIC & mask)){
-        context->serial.sync++;
-        context->serial.bytes_read++;
+    uint32_t mask = 0xFFFFFFFF >> ((3 - serial->sync) * 8);
+    if((serial->msg.magic & mask) == (SER_MAGIC & mask)){
+        serial->sync++;
+        serial->bytes_read++;
 
-        if(context->serial.sync == 4){
-            context->serial.bytes_to_read = sizeof(Header);
+        if(serial->sync == 4){
+            serial->bytes_to_read = sizeof(Header);
         }
     }
     else{
-        serial_reset(context);
+        serial_reset(serial);
     }
 }
 
@@ -239,7 +239,6 @@ void serial_update(Serial* serial){
 
 void serial_msg_pro(Serial* serial){
     serial->read_bdy = false;
-    memset(&serial->msg, 0, sizeof(Message));
     serial_reset(serial);
 }
 

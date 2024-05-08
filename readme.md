@@ -1,14 +1,39 @@
+# STC 
 
+STC (Serial Transmission Control) is a serial protocol.
+It was designed to establish communication between a Raspberry Pi and an Arduino Nano.
+<br>
+This repository contains the source of the protocol.
+It is implemented for Linux (#define _LINUX) and Arduino (#define _ARDUINO).
+<br>
+<br>
+Also included is a Sniffer, which can be used to monitor the traffic.
+
+## Concept
+
+The STC protocol sends data in form of packets (messages) similarly to how Ethernet works.
+To prevent data loss a packet (SYN) gets resend until a corresponding ACK packets is received (similar to TCP).   
+
+## Structure
+
+A packet can be split into three parts:
+* The **magic number**, which is used to determine the start of a packet
+* The **header**, which contains control field
+* The **body**, which contains the data to be sent
+
+#### Magic Number
 ```
  0                   1                   2                   3   
  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |                         Magic Number                          |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                                                                  (in bits)
 ```
 
 * Magic Number (0xDECAFBAD): Indicates start of frame
 
+#### Header
 ``` 
  0                   1                   2                   3
  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -19,13 +44,17 @@
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |      TCF      |      CRC      |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                                                                  (in bits)
 ```
 
-* ID: Idicates type of of message and corresponding body
+* ID: Indicates type of message and corresponding body
 * Length: Length of body in bytes
 * TCN(Transmission Control Number): Increments with each message
 * TCF(Transmission Control Flags):
     * 0b00000001: SYN
     * 0b00000010: ACK
     * 0b00000100: RST
-* CRC: Checksum over complete message execpt CRC field
+* CRC: Checksum over complete message except CRC field
+
+## Sniffer
+
