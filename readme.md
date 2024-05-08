@@ -57,4 +57,8 @@ A packet can be split into three parts:
 * CRC: Checksum over complete message except CRC field
 
 ## Sniffer
+![sniffer0](https://github.com/MarQMark/stc/assets/72945679/44ec305d-0f8a-49db-a8ee-c599a8babe5b)
+![sniffer1](https://github.com/MarQMark/stc/assets/72945679/5490b2df-774a-4f0d-ab38-0993c505ff56)
+![sniffer2](https://github.com/MarQMark/stc/assets/72945679/2f74e44e-2131-4b34-8416-71d378600269)
+
 
