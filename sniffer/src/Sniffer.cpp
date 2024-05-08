@@ -605,7 +605,7 @@ void Sniffer::render_details() {
                 std::vector<ProfileType*> types = *_profiles[_profile_str]->types[msg->hdr.id];
                 uint32_t off = 0;
                 for(int i = 0; i < types.size(); i++){
-                    if(off + types[i]->getType() >= msg->hdr.len)
+                    if(off + types[i]->getLen() > msg->hdr.len)
                         break;
 
                     switch (types[i]->getType()) {
